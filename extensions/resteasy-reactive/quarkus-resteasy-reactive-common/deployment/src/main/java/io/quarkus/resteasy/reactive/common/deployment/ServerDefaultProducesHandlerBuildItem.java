@@ -22,4 +22,8 @@ public final class ServerDefaultProducesHandlerBuildItem extends MultiBuildItem 
     public static ServerDefaultProducesHandlerBuildItem json() {
         return new ServerDefaultProducesHandlerBuildItem(new JsonDefaultProducersHandler());
     }
+
+    public static ServerDefaultProducesHandlerBuildItem xml() {
+        return new ServerDefaultProducesHandlerBuildItem(new XmlDefaultProducersHandler());
+    }
 }
