@@ -9,6 +9,7 @@ import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.resteasy.reactive.jaxb.runtime.serialisers.JaxbContextCache;
 import io.quarkus.resteasy.reactive.jaxb.runtime.serialisers.JaxbMessageBodyReader;
 import io.quarkus.resteasy.reactive.jaxb.runtime.serialisers.JaxbMessageBodyWriter;
 import io.quarkus.resteasy.reactive.spi.MessageBodyReaderBuildItem;
@@ -29,6 +30,7 @@ public class ResteasyReactiveJaxbProcessor {
         additionalBean.produce(AdditionalBeanBuildItem.builder()
                 .addBeanClass(JaxbMessageBodyReader.class.getName())
                 .addBeanClass(JaxbMessageBodyWriter.class.getName())
+                .addBeanClass(JaxbContextCache.class.getName())
                 .setUnremovable().build());
 
         additionalReaders.produce(new MessageBodyReaderBuildItem(JaxbMessageBodyReader.class.getName(), Object.class.getName(),

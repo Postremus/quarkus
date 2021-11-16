@@ -6,11 +6,14 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 
 import org.jboss.resteasy.reactive.server.spi.ServerMessageBodyWriter;
 import org.jboss.resteasy.reactive.server.spi.ServerRequestContext;
@@ -18,6 +21,13 @@ import org.jboss.resteasy.reactive.server.spi.ServerRequestContext;
 import io.vertx.core.MultiMap;
 
 public class JaxbMessageBodyWriter extends ServerMessageBodyWriter.AllWriteableMessageBodyWriter {
+
+    private final JaxbContextCache jaxbContextCache;
+
+    @Inject
+    public JaxbMessageBodyWriter(JaxbContextCache jaxbContextCache) {
+        this.jaxbContextCache = jaxbContextCache;
+    }
 
     @Override
     public void writeTo(Object o, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
@@ -31,7 +41,12 @@ public class JaxbMessageBodyWriter extends ServerMessageBodyWriter.AllWriteableM
             throws WebApplicationException, IOException {
         setContentTypeIfNecessary(context);
         OutputStream stream = context.getOrCreateOutputStream();
-        JAXB.marshal(o, stream);
+        JAXBContext jaxbContext = jaxbContextCache.retrieveContext(o);
+        try {
+            jaxbContext.createMarshaller().marshal(jaxbContextCache.wrap(o), stream);
+        } catch (JAXBException e) {
+            e.printStackTrace();
+        }
         // we don't use try-with-resources because that results in writing to the http output without the exception mapping coming into play
         stream.close();
     }

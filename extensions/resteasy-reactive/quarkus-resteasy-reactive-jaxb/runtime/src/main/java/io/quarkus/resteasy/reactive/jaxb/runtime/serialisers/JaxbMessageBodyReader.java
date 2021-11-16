@@ -5,10 +5,13 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 
+import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 
 import org.jboss.resteasy.reactive.server.spi.ResteasyReactiveResourceInfo;
 import org.jboss.resteasy.reactive.server.spi.ServerMessageBodyReader;
@@ -17,6 +20,13 @@ import org.jboss.resteasy.reactive.server.spi.ServerRequestContext;
 import io.quarkus.resteasy.reactive.server.runtime.StreamUtil;
 
 public class JaxbMessageBodyReader implements ServerMessageBodyReader<Object> {
+
+    private final JaxbContextCache jaxbContextCache;
+
+    @Inject
+    public JaxbMessageBodyReader(JaxbContextCache jaxbContextCache) {
+        this.jaxbContextCache = jaxbContextCache;
+    }
 
     @Override
     public Object readFrom(Class<Object> type, Type genericType, Annotation[] annotations, MediaType mediaType,
@@ -58,7 +68,12 @@ public class JaxbMessageBodyReader implements ServerMessageBodyReader<Object> {
             return null;
         }
 
-        return JAXB.unmarshal(entityStream, type);
+        JAXBContext jaxbContext = jaxbContextCache.retrieveContext(type);
+        try {
+            return jaxbContext.createUnmarshaller().unmarshal(entityStream);
+        } catch (JAXBException e) {
+            throw new BadRequestException(e);
+        }
     }
 
     private boolean isInputStreamEmpty(InputStream entityStream) throws IOException {
