@@ -192,7 +192,7 @@ public final class BuildStepBuilder {
      */
     public BuildChainBuilder build() {
         final BuildChainBuilder chainBuilder = this.buildChainBuilder;
-        chainBuilder.addStep(this, new Exception().getStackTrace());
+        chainBuilder.addStep(this);
         return chainBuilder;
     }
 

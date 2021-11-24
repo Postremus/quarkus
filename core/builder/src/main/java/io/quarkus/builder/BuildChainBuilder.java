@@ -34,7 +34,7 @@ public final class BuildChainBuilder {
 
     private final BuildStepBuilder finalStep;
     private final List<BuildProvider> providers = new ArrayList<>();
-    private final Map<BuildStepBuilder, StackTraceElement[]> steps = new HashMap<BuildStepBuilder, StackTraceElement[]>();
+    private final List<BuildStepBuilder> steps = new ArrayList<>();
     private final Set<ItemId> initialIds = new HashSet<>();
     private final Set<ItemId> finalIds = new HashSet<>();
     private ClassLoader classLoader = BuildChainBuilder.class.getClassLoader();
@@ -151,16 +151,14 @@ public final class BuildChainBuilder {
      */
     public BuildChain build() throws ChainBuildException {
         final Set<ItemId> consumed = new HashSet<>();
-        final Map<BuildStepBuilder, StepInfo> mappedSteps = new HashMap<>();
         int initialSingleCount = 0;
         int initialMultiCount = 0;
-        final Map<BuildStepBuilder, StackTraceElement[]> steps = this.steps;
+        final List<BuildStepBuilder> steps = this.steps;
         // compile main produce/consume maps
         final Map<ItemId, List<Consume>> allConsumes = new HashMap<>();
         final Map<ItemId, List<Produce>> allProduces = new HashMap<>();
         final Set<ItemId> initialIds = this.initialIds;
-        for (Map.Entry<BuildStepBuilder, StackTraceElement[]> stepEntry : steps.entrySet()) {
-            final BuildStepBuilder stepBuilder = stepEntry.getKey();
+        for (BuildStepBuilder stepBuilder : steps) {
             final Map<ItemId, Consume> stepConsumes = stepBuilder.getConsumes();
             for (Map.Entry<ItemId, Consume> entry : stepConsumes.entrySet()) {
                 final ItemId id = entry.getKey();
@@ -178,7 +176,7 @@ public final class BuildChainBuilder {
                         final ChainBuildException cbe = new ChainBuildException(
                                 "Item " + id + " cannot be produced here (it is an initial resource) ("
                                         + toBeAdded.getStepBuilder().getBuildStep() + ")");
-                        cbe.setStackTrace(steps.get(toBeAdded.getStepBuilder()));
+                        cbe.setStackTrace(null);
                         throw cbe;
                     }
                     final boolean overridable = toBeAdded.isOverridable();
@@ -187,12 +185,10 @@ public final class BuildChainBuilder {
                                 && produce.isOverridable() == overridable) {
                             final Throwable cause = new Throwable("This is the location of the conflicting producer ("
                                     + toBeAdded.getStepBuilder().getBuildStep() + ")");
-                            cause.setStackTrace(steps.get(toBeAdded.getStepBuilder()));
                             final ChainBuildException cbe = new ChainBuildException(
                                     String.format("Multiple %s" + "producers of item %s (%s)",
                                             overridable ? "overridable " : "", id, produce.getStepBuilder().getBuildStep()),
                                     cause);
-                            cbe.setStackTrace(steps.get(produce.getStepBuilder()));
                             throw cbe;
                         }
                     }
@@ -237,6 +233,7 @@ public final class BuildChainBuilder {
         // recursively build all
         final Set<StepInfo> startSteps = new HashSet<>();
         final Set<StepInfo> endSteps = new HashSet<>();
+        final Map<BuildStepBuilder, StepInfo> mappedSteps = new HashMap<>();
         for (BuildStepBuilder builder : included) {
             buildOne(builder, included, mappedSteps, dependents, dependencies, startSteps, endSteps);
         }
@@ -455,11 +452,11 @@ public final class BuildChainBuilder {
         provider.installInto(this);
     }
 
-    void addStep(final BuildStepBuilder stepBuilder, final StackTraceElement[] stackTrace) {
+    void addStep(final BuildStepBuilder stepBuilder) {
         if (stepBuilder.getBuildStep() == null) {
             throw new IllegalArgumentException("Null build step");
         }
-        steps.put(stepBuilder, stackTrace);
+        steps.add(stepBuilder);
     }
 
     BuildStepBuilder getFinalStep() {
@@ -470,7 +467,7 @@ public final class BuildChainBuilder {
         return providers;
     }
 
-    Map<BuildStepBuilder, StackTraceElement[]> getSteps() {
+    List<BuildStepBuilder> getSteps() {
         return steps;
     }
 
