@@ -13,6 +13,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Consume;
 import io.quarkus.deployment.builditem.CuratedApplicationShutdownBuildItem;
 import io.quarkus.deployment.builditem.RuntimeConfigSetupCompleteBuildItem;
+import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleRouteBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleRuntimeTemplateInfoBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleTemplateInfoBuildItem;
@@ -53,7 +54,7 @@ public class OidcDevConsoleProcessor extends AbstractDevConsoleProcessor {
             BuildProducer<DevConsoleRuntimeTemplateInfoBuildItem> devConsoleRuntimeInfo,
             CuratedApplicationShutdownBuildItem closeBuildItem,
             BuildProducer<DevConsoleRouteBuildItem> devConsoleRoute,
-            Capabilities capabilities) {
+            Capabilities capabilities, CurateOutcomeBuildItem curateOutcomeBuildItem) {
         if (isOidcTenantEnabled() && isAuthServerUrlSet() && isClientIdSet()) {
 
             if (vertxInstance == null) {
@@ -97,10 +98,11 @@ public class OidcDevConsoleProcessor extends AbstractDevConsoleProcessor {
 
             devConsoleRuntimeInfo.produce(
                     new DevConsoleRuntimeTemplateInfoBuildItem("clientId",
-                            new OidcConfigPropertySupplier(CLIENT_ID_CONFIG_KEY)));
+                            new OidcConfigPropertySupplier(CLIENT_ID_CONFIG_KEY), this.getClass(), curateOutcomeBuildItem));
             devConsoleRuntimeInfo.produce(
                     new DevConsoleRuntimeTemplateInfoBuildItem("clientSecret",
-                            new OidcConfigPropertySupplier(CLIENT_SECRET_CONFIG_KEY, "")));
+                            new OidcConfigPropertySupplier(CLIENT_SECRET_CONFIG_KEY, ""), this.getClass(),
+                            curateOutcomeBuildItem));
 
             Duration webClientTimeout = oidcConfig.devui.webClienTimeout.isPresent() ? oidcConfig.devui.webClienTimeout.get()
                     : Duration.ofSeconds(4);

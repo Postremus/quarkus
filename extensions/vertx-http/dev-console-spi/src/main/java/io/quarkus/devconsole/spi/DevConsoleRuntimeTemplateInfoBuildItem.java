@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import io.quarkus.builder.item.MultiBuildItem;
+import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 import io.quarkus.deployment.util.ArtifactInfoUtil;
 
 /**
@@ -28,16 +29,9 @@ public final class DevConsoleRuntimeTemplateInfoBuildItem extends MultiBuildItem
         this.object = object;
     }
 
-    public DevConsoleRuntimeTemplateInfoBuildItem(String name, Supplier<? extends Object> object) {
-        String callerClassName = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass()
-                .getCanonicalName();
-        Class<?> callerClass = null;
-        try {
-            callerClass = Thread.currentThread().getContextClassLoader().loadClass(callerClassName);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        Map.Entry<String, String> info = ArtifactInfoUtil.groupIdAndArtifactId(callerClass);
+    public DevConsoleRuntimeTemplateInfoBuildItem(String name, Supplier<? extends Object> object, Class<?> callerClass,
+            CurateOutcomeBuildItem curateOutcomeBuildItem) {
+        Map.Entry<String, String> info = ArtifactInfoUtil.groupIdAndArtifactId(callerClass, curateOutcomeBuildItem);
         this.groupId = info.getKey();
         this.artifactId = info.getValue();
         this.name = name;
