@@ -10,6 +10,7 @@ import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Consume;
 import io.quarkus.deployment.builditem.RuntimeConfigSetupCompleteBuildItem;
+import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleRouteBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleRuntimeTemplateInfoBuildItem;
 import io.quarkus.devconsole.spi.DevConsoleTemplateInfoBuildItem;
@@ -34,7 +35,7 @@ public class KeycloakDevConsoleProcessor extends AbstractDevConsoleProcessor {
     public void setConfigProperties(BuildProducer<DevConsoleTemplateInfoBuildItem> devConsoleInfo,
             BuildProducer<DevConsoleRuntimeTemplateInfoBuildItem> devConsoleRuntimeInfo,
             Optional<KeycloakDevServicesConfigBuildItem> configProps,
-            Capabilities capabilities) {
+            Capabilities capabilities, CurateOutcomeBuildItem curateOutcomeBuildItem) {
         if (configProps.isPresent() && configProps.get().getProperties().containsKey("keycloak.url")) {
             String keycloakUrl = (String) configProps.get().getProperties().get("keycloak.url");
             String realmUrl = keycloakUrl + "/realms/" + configProps.get().getProperties().get("keycloak.realm");
@@ -55,10 +56,11 @@ public class KeycloakDevConsoleProcessor extends AbstractDevConsoleProcessor {
                     true);
             devConsoleRuntimeInfo.produce(
                     new DevConsoleRuntimeTemplateInfoBuildItem("clientId",
-                            new OidcConfigPropertySupplier(CLIENT_ID_CONFIG_KEY)));
+                            new OidcConfigPropertySupplier(CLIENT_ID_CONFIG_KEY), this.getClass(), curateOutcomeBuildItem));
             devConsoleRuntimeInfo.produce(
                     new DevConsoleRuntimeTemplateInfoBuildItem("clientSecret",
-                            new OidcConfigPropertySupplier(CLIENT_SECRET_CONFIG_KEY, "")));
+                            new OidcConfigPropertySupplier(CLIENT_SECRET_CONFIG_KEY, ""), this.getClass(),
+                            curateOutcomeBuildItem));
 
         }
     }

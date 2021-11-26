@@ -26,37 +26,21 @@ public final class ArtifactInfoUtil {
      * <p>
      * The way this works is by depending on the pom.properties file that should be present in the deployment jar
      *
-     * @return the result, or throws
-     */
-    public static Map.Entry<String, String> groupIdAndArtifactId(Class<?> clazz) {
-        return groupIdAndArtifactId(clazz, null);
-    }
-
-    /**
-     * Returns a Map.Entry containing the groupId and the artifactId of the module the contains the BuildItem
-     * <p>
-     * The way this works is by depending on the pom.properties file that should be present in the deployment jar
-     *
+     * @param clazz the caller clazz. Not Null
+     * @param curateOutcomeBuildItem the application model that gets searched for the caller clazz. May be null
      * @return the result, or throws
      */
     public static Map.Entry<String, String> groupIdAndArtifactId(Class<?> clazz,
             CurateOutcomeBuildItem curateOutcomeBuildItem) {
         try {
             URL codeLocation = clazz.getProtectionDomain().getCodeSource().getLocation();
-            if (codeLocation.toString().endsWith(".jar")) {
-                try (FileSystem fs = FileSystems.newFileSystem(Paths.get(codeLocation.toURI()),
-                        Thread.currentThread().getContextClassLoader())) {
-                    Entry<String, String> ret = groupIdAndArtifactId(fs);
-                    if (ret == null) {
-                        throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains "
-                                + clazz.getName() + " because the jar doesn't contain the necessary metadata");
-                    }
-                    return ret;
-                }
-            } else if (curateOutcomeBuildItem != null) {
-                // this is needed only for QuarkusDevModeTest inside Quarkus where the class is read from the corresponding directory
+            if (curateOutcomeBuildItem != null) {
                 Path path = Paths.get(codeLocation.toURI());
+                String pathAsString = path.toString();
                 for (ResolvedDependency i : curateOutcomeBuildItem.getApplicationModel().getDependencies()) {
+                    if (!pathAsString.contains(i.getArtifactId())) {
+                        continue;
+                    }
                     for (Path p : i.getResolvedPaths()) {
                         if (path.equals(p)) {
 
@@ -69,6 +53,16 @@ public final class ArtifactInfoUtil {
                     }
                 }
                 return new AbstractMap.SimpleEntry<>("unspecified", "unspecified");
+            } else if (codeLocation.toString().endsWith(".jar")) {
+                try (FileSystem fs = FileSystems.newFileSystem(Paths.get(codeLocation.toURI()),
+                        Thread.currentThread().getContextClassLoader())) {
+                    Entry<String, String> ret = groupIdAndArtifactId(fs);
+                    if (ret == null) {
+                        throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains "
+                                + clazz.getName() + " because the jar doesn't contain the necessary metadata");
+                    }
+                    return ret;
+                }
             } else if ("file".equals(codeLocation.getProtocol())) {
                 // E.g. /quarkus/extensions/arc/deployment/target/classes/io/quarkus/arc/deployment/devconsole
                 // This can happen if you run an example app in dev mode
