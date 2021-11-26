@@ -23,12 +23,12 @@ public class DevUIDatasourceProcessor {
         names.add("<default>");
         names.addAll(dataSourceBuildTimeConfig.namedDataSources.keySet());
         Collections.sort(names);
-        return new DevConsoleTemplateInfoBuildItem("dbs", names);
+        return new DevConsoleTemplateInfoBuildItem("dbs", names, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
     @Record(value = STATIC_INIT, optional = true)
     DevConsoleRouteBuildItem devConsoleCleanDatabaseHandler(DatabaseRecorder recorder) {
-        return new DevConsoleRouteBuildItem("reset", "POST", recorder.devConsoleResetDatabaseHandler());
+        return new DevConsoleRouteBuildItem("reset", "POST", recorder.devConsoleResetDatabaseHandler(), this.getClass());
     }
 }

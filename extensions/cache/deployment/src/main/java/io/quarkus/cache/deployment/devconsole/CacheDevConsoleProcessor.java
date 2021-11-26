@@ -22,6 +22,6 @@ public class CacheDevConsoleProcessor {
     @BuildStep
     @Record(value = STATIC_INIT, optional = true)
     DevConsoleRouteBuildItem invokeEndpoint(CacheDevConsoleRecorder recorder) {
-        return new DevConsoleRouteBuildItem("caches", "POST", recorder.clearCacheHandler());
+        return new DevConsoleRouteBuildItem("caches", "POST", recorder.clearCacheHandler(), this.getClass());
     }
 }

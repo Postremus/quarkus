@@ -40,9 +40,10 @@ public class KeycloakDevConsoleProcessor extends AbstractDevConsoleProcessor {
             String keycloakUrl = (String) configProps.get().getProperties().get("keycloak.url");
             String realmUrl = keycloakUrl + "/realms/" + configProps.get().getProperties().get("keycloak.realm");
 
-            devConsoleInfo.produce(new DevConsoleTemplateInfoBuildItem("keycloakAdminUrl", keycloakUrl));
+            devConsoleInfo.produce(new DevConsoleTemplateInfoBuildItem("keycloakAdminUrl", keycloakUrl, this.getClass()));
             devConsoleInfo.produce(
-                    new DevConsoleTemplateInfoBuildItem("keycloakUsers", configProps.get().getProperties().get("oidc.users")));
+                    new DevConsoleTemplateInfoBuildItem("keycloakUsers", configProps.get().getProperties().get("oidc.users"),
+                            this.getClass()));
 
             produceDevConsoleTemplateItems(capabilities,
                     devConsoleInfo,

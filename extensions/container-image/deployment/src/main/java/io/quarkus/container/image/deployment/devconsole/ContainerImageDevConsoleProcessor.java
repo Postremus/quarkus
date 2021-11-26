@@ -14,13 +14,13 @@ public class ContainerImageDevConsoleProcessor {
     @BuildStep
     DevConsoleRouteBuildItem builder() {
         return new DevConsoleRouteBuildItem("build", "POST",
-                new RebuildHandler(Collections.singletonMap("quarkus.container-image.build", "true")));
+                new RebuildHandler(Collections.singletonMap("quarkus.container-image.build", "true")), this.getClass());
     }
 
     @BuildStep
     DevConsoleTemplateInfoBuildItem handleGetBuilders(List<AvailableContainerImageExtensionBuildItem> extensions) {
         return new DevConsoleTemplateInfoBuildItem("builder",
-                extensions.stream().map(s -> new BuilderType(s.getName())).collect(Collectors.toList()));
+                extensions.stream().map(s -> new BuilderType(s.getName())).collect(Collectors.toList()), this.getClass());
     }
 
     public static class BuilderType implements Comparable<BuilderType> {

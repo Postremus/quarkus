@@ -271,7 +271,7 @@ public class SchedulerProcessor {
                 new BeanLookupSupplier(Scheduler.class), this.getClass(), curateOutcomeBuildItem));
         infos.produce(new DevConsoleRuntimeTemplateInfoBuildItem("configLookup",
                 recorder.getConfigLookup(), this.getClass(), curateOutcomeBuildItem));
-        return new DevConsoleRouteBuildItem("schedules", "POST", recorder.invokeHandler());
+        return new DevConsoleRouteBuildItem("schedules", "POST", recorder.invokeHandler(), this.getClass());
     }
 
     @BuildStep

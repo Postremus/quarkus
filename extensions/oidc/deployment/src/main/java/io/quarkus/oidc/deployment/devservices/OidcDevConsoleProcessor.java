@@ -84,7 +84,7 @@ public class OidcDevConsoleProcessor extends AbstractDevConsoleProcessor {
             String providerName = tryToGetProviderName(authServerUrl);
             if (KEYCLOAK.equals(providerName)) {
                 devConsoleInfo.produce(new DevConsoleTemplateInfoBuildItem("keycloakAdminUrl",
-                        authServerUrl.substring(0, authServerUrl.indexOf("/realms/"))));
+                        authServerUrl.substring(0, authServerUrl.indexOf("/realms/")), this.getClass()));
             }
             produceDevConsoleTemplateItems(capabilities,
                     devConsoleInfo,

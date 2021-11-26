@@ -95,11 +95,11 @@ public class ConfigEditorProcessor {
                     setConfig(values);
                 }
             }
-        }));
+        }, this.getClass()));
 
         devConsoleRouteProducer.produce(new DevConsoleRouteBuildItem("config/all", "GET", (e) -> {
             e.end(Buffer.buffer(getConfig()));
-        }));
+        }, this.getClass()));
     }
 
     private Map<String, String> filterAndApplyProfile(Map<String, String> autoconfig, List<String> configFilter,
