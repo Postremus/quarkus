@@ -37,7 +37,7 @@ public class TestsProcessor {
         if (testsDisabled(launchModeBuildItem, ts)) {
             return null;
         }
-        return new DevConsoleTemplateInfoBuildItem("tests", ts.get());
+        return new DevConsoleTemplateInfoBuildItem("tests", ts.get(), this.getClass());
     }
 
     @Record(ExecutionTime.RUNTIME_INIT)
@@ -98,7 +98,7 @@ public class TestsProcessor {
                 testStatus.setRunning(status.getRunning());
                 event.response().end(JsonObject.mapFrom(testStatus).encode());
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -120,7 +120,7 @@ public class TestsProcessor {
                 object.put("running", ts.get().isRunning());
                 event.response().putHeader("Content-Type", "application/json; charset=utf-8").end(object.build());
             }
-        }));
+        }, this.getClass()));
         routeProducer.produce(new DevConsoleRouteBuildItem("tests/toggle-broken-only", "POST", new Handler<>() {
             @Override
             public void handle(RoutingContext event) {
@@ -129,7 +129,7 @@ public class TestsProcessor {
                 object.put("brokenOnlyMode", brokenOnlyMode);
                 event.response().putHeader("Content-Type", "application/json; charset=utf-8").end(object.build());
             }
-        }));
+        }, this.getClass()));
     }
 
     private boolean testsDisabled(LaunchModeBuildItem launchModeBuildItem, Optional<TestSupport> ts) {
@@ -147,7 +147,7 @@ public class TestsProcessor {
             public void handle(RoutingContext event) {
                 ts.get().runAllTests();
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -165,7 +165,7 @@ public class TestsProcessor {
                 object.put("isTestOutput", isTestOutput);
                 event.response().putHeader("Content-Type", "application/json; charset=utf-8").end(object.build());
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -179,7 +179,7 @@ public class TestsProcessor {
             public void handle(RoutingContext event) {
                 ts.get().runFailedTests();
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -193,7 +193,7 @@ public class TestsProcessor {
             public void handle(RoutingContext event) {
                 ts.get().printFullResults();
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -206,7 +206,7 @@ public class TestsProcessor {
                 object.put("instrumentationEnabled", instrumentationEnabled);
                 event.response().putHeader("Content-Type", "application/json; charset=utf-8").end(object.build());
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -223,7 +223,7 @@ public class TestsProcessor {
                 object.put("liveReloadEnabled", liveReloadEnabled);
                 event.response().putHeader("Content-Type", "application/json; charset=utf-8").end(object.build());
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -236,7 +236,7 @@ public class TestsProcessor {
             public void handle(RoutingContext event) {
                 RuntimeUpdatesProcessor.INSTANCE.doScan(true, true);
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -262,7 +262,7 @@ public class TestsProcessor {
                     event.response().end(JsonObject.mapFrom(result).encode());
                 }
             }
-        });
+        }, this.getClass());
     }
 
     public MultiMap jsonResponse(RoutingContext event) {

@@ -43,37 +43,18 @@ public final class DevConsoleRouteBuildItem extends MultiBuildItem {
     }
 
     public DevConsoleRouteBuildItem(String path, String method,
-            Handler<RoutingContext> handler) {
-        // we cannot use this() because the caller detection would not work
-        String callerClassName = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass()
-                .getCanonicalName();
-        try {
-            callerClass = Thread.currentThread().getContextClassLoader().loadClass(callerClassName);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        this.groupId = null;
-        this.artifactId = null;
-        this.path = path;
-        this.method = method;
-        this.handler = handler;
-        this.isBodyHandlerRequired = false;
+            Handler<RoutingContext> handler, Class<?> callerClass) {
+        this(path, method, handler, callerClass, false);
     }
 
     public DevConsoleRouteBuildItem(String path, String method,
-            Handler<RoutingContext> handler, boolean isBodyHandlerRequired) {
-        String callerClassName = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass()
-                .getCanonicalName();
-        try {
-            callerClass = Thread.currentThread().getContextClassLoader().loadClass(callerClassName);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+            Handler<RoutingContext> handler, Class<?> callerClass, boolean isBodyHandlerRequired) {
         this.groupId = null;
         this.artifactId = null;
         this.path = path;
         this.method = method;
         this.handler = handler;
+        this.callerClass = callerClass;
         this.isBodyHandlerRequired = isBodyHandlerRequired;
     }
 

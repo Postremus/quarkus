@@ -33,7 +33,7 @@ public class ResteasyReactiveDevConsoleProcessor {
     @BuildStep(onlyIf = IsDevelopment.class)
     public DevConsoleTemplateInfoBuildItem collectAdditionalEndpoints(
             List<NotFoundPageDisplayableEndpointBuildItem> additionalEndpoint) {
-        return new DevConsoleTemplateInfoBuildItem("additionalEndpointInfo", additionalEndpoint);
+        return new DevConsoleTemplateInfoBuildItem("additionalEndpointInfo", additionalEndpoint, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -48,7 +48,7 @@ public class ResteasyReactiveDevConsoleProcessor {
                 collectKnownPaths(resource, staticResourceInfo);
             }
         }
-        return new DevConsoleTemplateInfoBuildItem("staticResourceInfo", staticResourceInfo);
+        return new DevConsoleTemplateInfoBuildItem("staticResourceInfo", staticResourceInfo, this.getClass());
     }
 
     private void collectKnownPaths(Path resource, StaticResourceInfo staticResourceInfo) {

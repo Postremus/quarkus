@@ -108,7 +108,7 @@ public class ArcDevConsoleProcessor {
             beanInfos.addInterceptor(DevInterceptorInfo.from(interceptor, predicate));
         }
         beanInfos.sort();
-        return new DevConsoleTemplateInfoBuildItem("devBeanInfos", beanInfos);
+        return new DevConsoleTemplateInfoBuildItem("devBeanInfos", beanInfos, this.getClass());
     }
 
     private boolean isAdditionalBeanDefiningAnnotationOn(ClassInfo beanClass,

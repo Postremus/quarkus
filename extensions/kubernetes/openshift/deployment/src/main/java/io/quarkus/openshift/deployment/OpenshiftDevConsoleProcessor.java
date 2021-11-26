@@ -11,6 +11,6 @@ public class OpenshiftDevConsoleProcessor {
     @BuildStep
     DevConsoleRouteBuildItem builder() {
         return new DevConsoleRouteBuildItem("deploy", "POST",
-                new RebuildHandler(Collections.singletonMap("quarkus.kubernetes.deploy", "true")));
+                new RebuildHandler(Collections.singletonMap("quarkus.kubernetes.deploy", "true")), this.getClass());
     }
 }

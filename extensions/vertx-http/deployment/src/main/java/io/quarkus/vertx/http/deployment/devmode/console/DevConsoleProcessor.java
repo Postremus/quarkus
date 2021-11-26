@@ -449,7 +449,7 @@ public class DevConsoleProcessor {
     void builder(Optional<EffectiveIdeBuildItem> effectiveIdeBuildItem, BuildProducer<DevConsoleRouteBuildItem> producer) {
         if (effectiveIdeBuildItem.isPresent()) {
             producer.produce(new DevConsoleRouteBuildItem("openInIDE", "POST",
-                    new OpenIdeHandler(effectiveIdeBuildItem.get().getIde())));
+                    new OpenIdeHandler(effectiveIdeBuildItem.get().getIde()), this.getClass()));
         }
     }
 

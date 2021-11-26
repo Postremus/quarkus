@@ -98,6 +98,6 @@ public class FlywayDevConsoleProcessor {
                                 event.request().absoluteURI().replace("create-initial-migration", "datasources"));
                 event.response().end();
             }
-        });
+        }, this.getClass());
     }
 }

@@ -23,6 +23,6 @@ public class LiquibaseDevConsoleProcessor {
     @BuildStep
     @Record(value = RUNTIME_INIT, optional = true)
     DevConsoleRouteBuildItem invokeEndpoint(LiquibaseDevConsoleRecorder recorder) {
-        return new DevConsoleRouteBuildItem("datasources", "POST", recorder.handler());
+        return new DevConsoleRouteBuildItem("datasources", "POST", recorder.handler(), this.getClass());
     }
 }

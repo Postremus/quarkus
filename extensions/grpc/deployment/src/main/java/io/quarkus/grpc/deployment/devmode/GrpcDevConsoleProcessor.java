@@ -147,7 +147,7 @@ public class GrpcDevConsoleProcessor {
     @BuildStep(onlyIf = IsDevelopment.class)
     public DevConsoleRouteBuildItem createWebSocketEndpoint(GrpcDevConsoleRecorder recorder) {
         recorder.setServerConfiguration();
-        return new DevConsoleRouteBuildItem("grpc-test", "GET", recorder.handler());
+        return new DevConsoleRouteBuildItem("grpc-test", "GET", recorder.handler(), this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)

@@ -85,7 +85,7 @@ public class QuteDevConsoleProcessor {
                     }
                 });
             }
-        });
+        }, this.getClass());
     }
 
     @BuildStep(onlyIf = IsDevelopment.class)
@@ -109,7 +109,7 @@ public class QuteDevConsoleProcessor {
                         null, null));
             }
         }
-        return new DevConsoleTemplateInfoBuildItem("devQuteInfos", quteInfos);
+        return new DevConsoleTemplateInfoBuildItem("devQuteInfos", quteInfos, this.getClass());
     }
 
     private CheckedTemplateBuildItem findCheckedTemplate(String basePath, List<CheckedTemplateBuildItem> checkedTemplates) {

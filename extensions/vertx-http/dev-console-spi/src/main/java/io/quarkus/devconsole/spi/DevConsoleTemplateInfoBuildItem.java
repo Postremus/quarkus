@@ -17,16 +17,10 @@ public final class DevConsoleTemplateInfoBuildItem extends MultiBuildItem {
     private final Object object;
     private final Class<?> callerClass;
 
-    public DevConsoleTemplateInfoBuildItem(String name, Object object) {
-        String callerClassName = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass()
-                .getCanonicalName();
-        try {
-            callerClass = Thread.currentThread().getContextClassLoader().loadClass(callerClassName);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    public DevConsoleTemplateInfoBuildItem(String name, Object object, Class<?> callerClass) {
         this.name = name;
         this.object = object;
+        this.callerClass = callerClass;
     }
 
     /**
