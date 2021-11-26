@@ -70,8 +70,6 @@ public class ConfigDescriptionBuildStep {
                 @Override
                 public void accept(Container node) {
                     Field field = node.findField();
-                    ConfigItem configItem = field.getAnnotation(ConfigItem.class);
-                    final ConfigProperty configProperty = field.getAnnotation(ConfigProperty.class);
                     String defaultDefault;
                     final Class<?> valueClass = field.getType();
 
@@ -85,15 +83,19 @@ public class ConfigDescriptionBuildStep {
                         defaultDefault = null;
                     }
                     String defVal = defaultDefault;
-                    if (configItem != null) {
-                        final String itemDefVal = configItem.defaultValue();
-                        if (!itemDefVal.equals(ConfigItem.NO_DEFAULT)) {
-                            defVal = itemDefVal;
-                        }
-                    } else if (configProperty != null) {
+                    final ConfigProperty configProperty = field.getAnnotation(ConfigProperty.class);
+                    if (configProperty != null) {
                         final String propDefVal = configProperty.defaultValue();
                         if (!propDefVal.equals(ConfigProperty.UNCONFIGURED_VALUE)) {
                             defVal = propDefVal;
+                        }
+                    } else {
+                        final ConfigItem configItem = field.getAnnotation(ConfigItem.class);
+                        if (configItem != null) {
+                            final String itemDefVal = configItem.defaultValue();
+                            if (!itemDefVal.equals(ConfigItem.NO_DEFAULT)) {
+                                defVal = itemDefVal;
+                            }
                         }
                     }
                     String javadocKey = field.getDeclaringClass().getName().replace('$', '.') + '.' + field.getName();
@@ -145,10 +147,8 @@ public class ConfigDescriptionBuildStep {
             name = Double.class.getName();
         } else if (valueClass.equals(OptionalLong.class)) {
             name = Long.class.getName();
-        }
-
-        // Check if this is an enum
-        if (Enum.class.isAssignableFrom(valueClass)) {
+        } else if (Enum.class.isAssignableFrom(valueClass)) {
+            // Check if this is an enum
             name = Enum.class.getName();
 
             Object[] values = valueClass.getEnumConstants();
@@ -156,10 +156,7 @@ public class ConfigDescriptionBuildStep {
                 Enum casted = (Enum) valueClass.cast(v);
                 typeAndValues.addAllowedValue(casted.name());
             }
-        }
-
-        // Special case for Log level
-        if (valueClass.isAssignableFrom(Level.class)) {
+        } else if (valueClass.isAssignableFrom(Level.class)) {
             typeAndValues.addAllowedValue(Level.ALL.getName());
             typeAndValues.addAllowedValue(Level.CONFIG.getName());
             typeAndValues.addAllowedValue(Level.FINE.getName());

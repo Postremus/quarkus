@@ -1,7 +1,6 @@
 package io.quarkus.deployment.ide;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -146,7 +145,7 @@ public class IdeProcessor {
             for (Map.Entry<String, List<Ide>> entry : IDE_MARKER_FILES.entrySet()) {
                 String file = entry.getKey();
                 List<Ide> ides = entry.getValue();
-                if (Files.exists(root.resolve(file))) {
+                if (root.resolve(file).toFile().exists()) {
                     result.addAll(ides);
                 }
             }

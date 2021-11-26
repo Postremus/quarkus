@@ -3,8 +3,10 @@ package io.quarkus.vertx.http.runtime.devmode;
 import static io.smallrye.config.Expressions.withoutExpansion;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 
@@ -29,7 +31,7 @@ public class ConfigDescriptionsSupplier implements Supplier<Map<ConfigSourceName
     public Map<ConfigSourceName, List<ConfigDescription>> get() {
 
         Map<ConfigSourceName, List<ConfigDescription>> ordered = new TreeMap<>();
-        List<String> properties = new ArrayList<>();
+        Set<String> properties = new HashSet<>(configDescriptions.size());
         SmallRyeConfig current = (SmallRyeConfig) ConfigProvider.getConfig();
 
         for (ConfigDescription item : configDescriptions) {
