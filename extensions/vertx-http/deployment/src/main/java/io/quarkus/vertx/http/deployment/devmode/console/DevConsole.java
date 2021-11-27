@@ -61,28 +61,38 @@ public class DevConsole implements Handler<RoutingContext> {
         this.globalData.put("applicationName", config.getOptionalValue("quarkus.application.name", String.class).orElse(""));
         this.globalData.put("applicationVersion",
                 config.getOptionalValue("quarkus.application.version", String.class).orElse(""));
+    }
 
-        try {
-            final Yaml yaml = new Yaml();
-            ClassPathUtils.consumeAsPaths("/META-INF/quarkus-extension.yaml", p -> {
-                final String desc;
-                try (Scanner scanner = new Scanner(Files.newBufferedReader(p, StandardCharsets.UTF_8))) {
-                    scanner.useDelimiter("\\A");
-                    desc = scanner.hasNext() ? scanner.next() : null;
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to read " + p, e);
+    private Map<String, Map<String, Object>> readExtensions() {
+        if (extensions.isEmpty()) {
+            synchronized (extensions) {
+                if (extensions.isEmpty()) {
+                    try {
+                        final Yaml yaml = new Yaml();
+                        ClassPathUtils.consumeAsPaths("/META-INF/quarkus-extension.yaml", p -> {
+                            final String desc;
+                            try (Scanner scanner = new Scanner(Files.newBufferedReader(p, StandardCharsets.UTF_8))) {
+                                scanner.useDelimiter("\\A");
+                                desc = scanner.hasNext() ? scanner.next() : null;
+                            } catch (IOException e) {
+                                throw new RuntimeException("Failed to read " + p, e);
+                            }
+                            if (desc == null) {
+                                // should be an exception?
+                                return;
+                            }
+                            final Map<String, Object> metadata = yaml.load(desc);
+                            extensions.put(getExtensionNamespace(metadata), metadata);
+                        });
+                        this.globalData.put("configKeyMap", getConfigKeyMap());
+                    } catch (IOException x) {
+                        throw new RuntimeException(x);
+                    }
                 }
-                if (desc == null) {
-                    // should be an exception?
-                    return;
-                }
-                final Map<String, Object> metadata = yaml.load(desc);
-                extensions.put(getExtensionNamespace(metadata), metadata);
-            });
-        } catch (IOException x) {
-            throw new RuntimeException(x);
+            }
         }
-        this.globalData.put("configKeyMap", getConfigKeyMap());
+
+        return extensions;
     }
 
     @Override
@@ -138,7 +148,7 @@ public class DevConsole implements Handler<RoutingContext> {
     }
 
     private String getExtensionName(String namespace) {
-        Map<String, Object> map = extensions.get(namespace);
+        Map<String, Object> map = readExtensions().get(namespace);
         if (map == null)
             return null;
         return (String) map.get("name");
@@ -167,7 +177,7 @@ public class DevConsole implements Handler<RoutingContext> {
         Template devTemplate = engine.getTemplate("index");
         List<Map<String, Object>> actionableExtensions = new ArrayList<>();
         List<Map<String, Object>> nonActionableExtensions = new ArrayList<>();
-        for (Map<String, Object> loaded : this.extensions.values()) {
+        for (Map<String, Object> loaded : this.readExtensions().values()) {
             @SuppressWarnings("unchecked")
             final Map<String, Object> metadata = (Map<String, Object>) loaded.get("metadata");
             final String namespace = getExtensionNamespace(loaded);
