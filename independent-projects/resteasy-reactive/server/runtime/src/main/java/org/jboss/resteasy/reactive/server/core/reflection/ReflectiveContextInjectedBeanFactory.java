@@ -83,18 +83,22 @@ public class ReflectiveContextInjectedBeanFactory<T> implements BeanFactory<T> {
             if (i.isInterface() && (i.getName().startsWith("javax.ws.rs") || i.getName().startsWith("jakarta.ws.rs"))) {
                 var val = extractContextParam(i);
                 constructorParams.add(() -> val);
-            } else if (i.isAnnotationPresent(QueryParam.class)) {
-                //todo: this is all super hacky
-                //we need better SPI's around this
-                //we don't handle conversion at all
-                QueryParam param = i.getAnnotation(QueryParam.class);
-                constructorParams.add(() -> CurrentRequestManager.get().getQueryParameter(param.value(), true, false));
-            } else if (i.isAnnotationPresent(HeaderParam.class)) {
-                HeaderParam param = i.getAnnotation(HeaderParam.class);
-                constructorParams.add(() -> CurrentRequestManager.get().getHeader(param.value(), true));
             } else {
-                BeanFactory factory = create(i);
-                constructorParams.add(() -> factory.createInstance().getInstance());
+                QueryParam queryParam = i.getAnnotation(QueryParam.class);
+                if (queryParam != null) {
+                    //todo: this is all super hacky
+                    //we need better SPI's around this
+                    //we don't handle conversion at all
+                    constructorParams.add(() -> CurrentRequestManager.get().getQueryParameter(queryParam.value(), true, false));
+                } else {
+                    HeaderParam headerParam = i.getAnnotation(HeaderParam.class);
+                    if (headerParam != null) {
+                        constructorParams.add(() -> CurrentRequestManager.get().getHeader(headerParam.value(), true));
+                    } else {
+                        BeanFactory factory = create(i);
+                        constructorParams.add(() -> factory.createInstance().getInstance());
+                    }
+                }
             }
         }
         Class<?> c = constructor.getDeclaringClass();

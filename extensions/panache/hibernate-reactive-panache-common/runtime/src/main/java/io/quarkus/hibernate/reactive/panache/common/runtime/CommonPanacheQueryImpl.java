@@ -80,8 +80,9 @@ public class CommonPanacheQueryImpl<Entity> {
         int selectInitialLength = select.length();
         for (Parameter parameter : constructor.getParameters()) {
             String parameterName;
-            if (parameter.isAnnotationPresent(ProjectedFieldName.class)) {
-                final String name = parameter.getAnnotation(ProjectedFieldName.class).value();
+            ProjectedFieldName annotation = parameter.getAnnotation(ProjectedFieldName.class);
+            if (annotation != null) {
+                final String name = annotation.value();
                 if (name.isEmpty()) {
                     throw new PanacheQueryException("The annotation ProjectedFieldName must have a non-empty value.");
                 }

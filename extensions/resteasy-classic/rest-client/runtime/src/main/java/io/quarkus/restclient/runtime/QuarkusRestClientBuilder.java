@@ -493,15 +493,17 @@ public class QuarkusRestClientBuilder implements RestClientBuilder {
     }
 
     private String getPathParamName(AnnotatedElement element) {
-        if (element.isAnnotationPresent(PathParam.class)) {
-            PathParam pp = element.getAnnotation(PathParam.class);
+        PathParam pp = element.getAnnotation(PathParam.class);
+        if (pp != null) {
             return pp.value();
-        } else if (element.isAnnotationPresent(org.jboss.resteasy.annotations.jaxrs.PathParam.class)) {
-            org.jboss.resteasy.annotations.jaxrs.PathParam pp = element
+        } else {
+            org.jboss.resteasy.annotations.jaxrs.PathParam resteasyPP = element
                     .getAnnotation(org.jboss.resteasy.annotations.jaxrs.PathParam.class);
-            if (pp.value().length() > 0)
-                return pp.value();
-            return getReflectName(element);
+            if (resteasyPP != null) {
+                if (resteasyPP.value().length() > 0)
+                    return resteasyPP.value();
+                return getReflectName(element);
+            }
         }
         return null;
     }
@@ -567,14 +569,16 @@ public class QuarkusRestClientBuilder implements RestClientBuilder {
                 PathParam pathParam = p.getAnnotation(PathParam.class);
                 if (pathParam != null) {
                     paramMap.put(pathParam.value(), "foobar");
-                } else if (p.isAnnotationPresent(org.jboss.resteasy.annotations.jaxrs.PathParam.class)) {
+                } else {
                     org.jboss.resteasy.annotations.jaxrs.PathParam rePathParam = p
                             .getAnnotation(org.jboss.resteasy.annotations.jaxrs.PathParam.class);
-                    String name = rePathParam.value() == null || rePathParam.value().length() == 0 ? p.getName()
-                            : rePathParam.value();
-                    paramMap.put(name, "foobar");
-                } else if (p.isAnnotationPresent(BeanParam.class)) {
-                    verifyBeanPathParam(p.getType(), paramMap);
+                    if (rePathParam != null) {
+                        String name = rePathParam.value() == null || rePathParam.value().length() == 0 ? p.getName()
+                                : rePathParam.value();
+                        paramMap.put(name, "foobar");
+                    } else if (p.isAnnotationPresent(BeanParam.class)) {
+                        verifyBeanPathParam(p.getType(), paramMap);
+                    }
                 }
             }
 

@@ -45,20 +45,22 @@ public final class BooleanSupplierFactoryBuildItem extends SimpleBuildItem {
                     paramSuppList.add(() -> launchMode);
                 } else if (parameterClass == DevModeType.class) {
                     paramSuppList.add(() -> devModeType);
-                } else if (parameterClass.isAnnotationPresent(ConfigRoot.class)) {
+                } else {
                     final ConfigRoot annotation = parameterClass.getAnnotation(ConfigRoot.class);
-                    final ConfigPhase phase = annotation.phase();
-                    if (phase.isAvailableAtBuild()) {
-                        paramSuppList.add(() -> readResult.requireRootObjectForClass(parameterClass));
-                    } else if (phase.isReadAtMain()) {
-                        throw reportError(parameter, phase + " configuration cannot be consumed here");
+                    if (annotation != null) {
+                        final ConfigPhase phase = annotation.phase();
+                        if (phase.isAvailableAtBuild()) {
+                            paramSuppList.add(() -> readResult.requireRootObjectForClass(parameterClass));
+                        } else if (phase.isReadAtMain()) {
+                            throw reportError(parameter, phase + " configuration cannot be consumed here");
+                        } else {
+                            throw reportError(parameter,
+                                    "Unsupported conditional class configuration build phase " + phase);
+                        }
                     } else {
                         throw reportError(parameter,
-                                "Unsupported conditional class configuration build phase " + phase);
+                                "Unsupported conditional class constructor parameter type " + parameterClass);
                     }
-                } else {
-                    throw reportError(parameter,
-                            "Unsupported conditional class constructor parameter type " + parameterClass);
                 }
             }
             for (Field field : type.getDeclaredFields()) {
@@ -77,20 +79,22 @@ public final class BooleanSupplierFactoryBuildItem extends SimpleBuildItem {
                 final Class<?> fieldClass = field.getType();
                 if (fieldClass == LaunchMode.class) {
                     setup = setup.andThen(o -> ReflectUtil.setFieldVal(field, o, launchMode));
-                } else if (fieldClass.isAnnotationPresent(ConfigRoot.class)) {
-                    final ConfigRoot annotation = fieldClass.getAnnotation(ConfigRoot.class);
-                    final ConfigPhase phase = annotation.phase();
-                    if (phase.isAvailableAtBuild()) {
-                        setup = setup.andThen(o -> ReflectUtil.setFieldVal(field, o,
-                                readResult.requireRootObjectForClass(fieldClass)));
-                    } else if (phase.isReadAtMain()) {
-                        throw reportError(field, phase + " configuration cannot be consumed here");
-                    } else {
-                        throw reportError(field,
-                                "Unsupported conditional class configuration build phase " + phase);
-                    }
                 } else {
-                    throw reportError(field, "Unsupported conditional class field type " + fieldClass);
+                    final ConfigRoot annotation = fieldClass.getAnnotation(ConfigRoot.class);
+                    if (annotation != null) {
+                        final ConfigPhase phase = annotation.phase();
+                        if (phase.isAvailableAtBuild()) {
+                            setup = setup.andThen(o -> ReflectUtil.setFieldVal(field, o,
+                                    readResult.requireRootObjectForClass(fieldClass)));
+                        } else if (phase.isReadAtMain()) {
+                            throw reportError(field, phase + " configuration cannot be consumed here");
+                        } else {
+                            throw reportError(field,
+                                    "Unsupported conditional class configuration build phase " + phase);
+                        }
+                    } else {
+                        throw reportError(field, "Unsupported conditional class field type " + fieldClass);
+                    }
                 }
             }
             // make it
