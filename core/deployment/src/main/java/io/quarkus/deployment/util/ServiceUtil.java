@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.quarkus.runtime.util.ClassPathUtils;
@@ -21,6 +23,20 @@ import io.quarkus.runtime.util.ClassPathUtils;
 public final class ServiceUtil {
     private ServiceUtil() {
     }
+
+   /* public static Map<String, List<String>> classesNamedInFiles(ClassLoader classLoader, List<String> fileName) throws IOException {
+        final Set<String> classNames = new LinkedHashSet<>();
+        ClassPathUtils.consumeAsStreams(classLoader, fileName, classFile -> {
+            try (InputStreamReader reader = new InputStreamReader(classFile, StandardCharsets.UTF_8)) {
+                try (BufferedReader br = new BufferedReader(reader)) {
+                    readStream(classNames, br);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+        return Collections.unmodifiableSet(classNames);
+    }*/
 
     public static Iterable<Class<?>> classesNamedIn(ClassLoader classLoader, String fileName)
             throws IOException, ClassNotFoundException {

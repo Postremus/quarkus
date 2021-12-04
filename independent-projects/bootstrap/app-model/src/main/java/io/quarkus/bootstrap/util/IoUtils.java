@@ -27,7 +27,7 @@ import java.util.UUID;
  */
 public class IoUtils {
 
-    private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
+    private static final int DEFAULT_BUFFER_SIZE = 1024 * 16;
 
     private static final Path TMP_DIR = Paths.get(PropertyUtils.getProperty("java.io.tmpdir"));
 
