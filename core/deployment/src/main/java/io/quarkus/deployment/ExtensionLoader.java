@@ -265,10 +265,32 @@ public final class ExtensionLoader {
         } else {
             ctorParamFns = new ArrayList<>(ctorParameters.length);
             for (Parameter parameter : ctorParameters) {
-                Type parameterType = parameter.getParameterizedType();
                 final Class<?> parameterClass = parameter.getType();
+
+                if (parameterClass.isAnnotationPresent(ConfigRoot.class)) {
+                    final ConfigRoot annotation = parameterClass.getAnnotation(ConfigRoot.class);
+                    final ConfigPhase phase = annotation.phase();
+                    consumingConfigPhases.add(phase);
+
+                    if (phase.isAvailableAtBuild()) {
+                        ctorParamFns.add(bc -> bc.consume(ConfigurationBuildItem.class).getReadResult()
+                                .requireRootObjectForClass(parameterClass));
+                        if (phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
+                            runTimeProxies.computeIfAbsent(parameterClass, readResult::requireRootObjectForClass);
+                        }
+                    } else if (phase.isReadAtMain()) {
+                        throw reportError(parameter, phase + " configuration cannot be consumed here");
+                    } else {
+                        throw reportError(parameterClass, "Unknown value for ConfigPhase");
+                    }
+                    continue;
+                } else if (isRecorder(parameterClass)) {
+                    throw reportError(parameter, "Bytecode recorders disallowed on constructor parameters");
+                }
+
                 final boolean weak = parameter.isAnnotationPresent(Weak.class);
                 final boolean overridable = parameter.isAnnotationPresent(Overridable.class);
+                Type parameterType = parameter.getParameterizedType();
                 if (rawTypeExtends(parameterType, SimpleBuildItem.class)) {
                     final Class<? extends SimpleBuildItem> buildItemClass = rawTypeOf(parameterType)
                             .asSubclass(SimpleBuildItem.class);
@@ -335,27 +357,10 @@ public final class ExtensionLoader {
                             .ofNullable(bc.consume(buildItemClass)));
                 } else if (rawTypeOf(parameterType) == Executor.class) {
                     ctorParamFns.add(BuildContext::getExecutor);
-                } else if (parameterClass.isAnnotationPresent(ConfigRoot.class)) {
-                    final ConfigRoot annotation = parameterClass.getAnnotation(ConfigRoot.class);
-                    final ConfigPhase phase = annotation.phase();
-                    consumingConfigPhases.add(phase);
-
-                    if (phase.isAvailableAtBuild()) {
-                        ctorParamFns.add(bc -> bc.consume(ConfigurationBuildItem.class).getReadResult()
-                                .requireRootObjectForClass(parameterClass));
-                        if (phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
-                            runTimeProxies.computeIfAbsent(parameterClass, readResult::requireRootObjectForClass);
-                        }
-                    } else if (phase.isReadAtMain()) {
-                        throw reportError(parameter, phase + " configuration cannot be consumed here");
-                    } else {
-                        throw reportError(parameterClass, "Unknown value for ConfigPhase");
-                    }
-                } else if (isRecorder(parameterClass)) {
-                    throw reportError(parameter, "Bytecode recorders disallowed on constructor parameters");
                 } else {
                     throw reportError(parameter, "Unsupported constructor parameter type " + parameterType);
                 }
+
             }
         }
 
@@ -375,10 +380,38 @@ public final class ExtensionLoader {
                 field.setAccessible(true);
             }
             // next, determine the type
-            final Type fieldType = field.getGenericType();
             final Class<?> fieldClass = field.getType();
+            if (fieldClass == Executor.class) {
+                stepInstanceSetup = stepInstanceSetup.andThen((bc, o) -> ReflectUtil.setFieldVal(field, o, bc.getExecutor()));
+                continue;
+            } else if (fieldClass.isAnnotationPresent(ConfigRoot.class)) {
+                final ConfigRoot annotation = fieldClass.getAnnotation(ConfigRoot.class);
+                final ConfigPhase phase = annotation.phase();
+                consumingConfigPhases.add(phase);
+
+                if (phase.isAvailableAtBuild()) {
+                    stepInstanceSetup = stepInstanceSetup.andThen((bc, o) -> {
+                        final ConfigurationBuildItem configurationBuildItem = bc
+                                .consume(ConfigurationBuildItem.class);
+                        ReflectUtil.setFieldVal(field, o,
+                                configurationBuildItem.getReadResult().requireRootObjectForClass(fieldClass));
+                    });
+                    if (phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
+                        runTimeProxies.computeIfAbsent(fieldClass, readResult::requireRootObjectForClass);
+                    }
+                } else if (phase.isReadAtMain()) {
+                    throw reportError(field, phase + " configuration cannot be consumed here");
+                } else {
+                    throw reportError(fieldClass, "Unknown value for ConfigPhase");
+                }
+                continue;
+            } else if (isRecorder(fieldClass)) {
+                throw reportError(field, "Bytecode recorders disallowed on fields");
+            }
+
             final boolean weak = field.isAnnotationPresent(Weak.class);
             final boolean overridable = field.isAnnotationPresent(Overridable.class);
+            final Type fieldType = field.getGenericType();
             if (rawTypeExtends(fieldType, SimpleBuildItem.class)) {
                 final Class<? extends SimpleBuildItem> buildItemClass = rawTypeOf(fieldType).asSubclass(SimpleBuildItem.class);
                 stepConfig = stepConfig.andThen(bsb -> bsb.consumes(buildItemClass));
@@ -446,30 +479,6 @@ public final class ExtensionLoader {
                 stepConfig = stepConfig.andThen(bsb -> bsb.consumes(buildItemClass, ConsumeFlags.of(ConsumeFlag.OPTIONAL)));
                 stepInstanceSetup = stepInstanceSetup.andThen((bc, o) -> ReflectUtil.setFieldVal(field, o,
                         (Supplier<Optional<? extends SimpleBuildItem>>) () -> Optional.ofNullable(bc.consume(buildItemClass))));
-            } else if (fieldClass == Executor.class) {
-                stepInstanceSetup = stepInstanceSetup.andThen((bc, o) -> ReflectUtil.setFieldVal(field, o, bc.getExecutor()));
-            } else if (fieldClass.isAnnotationPresent(ConfigRoot.class)) {
-                final ConfigRoot annotation = fieldClass.getAnnotation(ConfigRoot.class);
-                final ConfigPhase phase = annotation.phase();
-                consumingConfigPhases.add(phase);
-
-                if (phase.isAvailableAtBuild()) {
-                    stepInstanceSetup = stepInstanceSetup.andThen((bc, o) -> {
-                        final ConfigurationBuildItem configurationBuildItem = bc
-                                .consume(ConfigurationBuildItem.class);
-                        ReflectUtil.setFieldVal(field, o,
-                                configurationBuildItem.getReadResult().requireRootObjectForClass(fieldClass));
-                    });
-                    if (phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
-                        runTimeProxies.computeIfAbsent(fieldClass, readResult::requireRootObjectForClass);
-                    }
-                } else if (phase.isReadAtMain()) {
-                    throw reportError(field, phase + " configuration cannot be consumed here");
-                } else {
-                    throw reportError(fieldClass, "Unknown value for ConfigPhase");
-                }
-            } else if (isRecorder(fieldClass)) {
-                throw reportError(field, "Bytecode recorders disallowed on fields");
             } else {
                 throw reportError(field, "Unsupported field type " + fieldType);
             }
@@ -523,7 +532,6 @@ public final class ExtensionLoader {
             final BooleanSupplier finalAddStep = addStep;
 
             if (isRecorder) {
-                assert recordAnnotation != null;
                 final ExecutionTime executionTime = recordAnnotation.value();
                 final boolean optional = recordAnnotation.optional();
                 methodStepConfig = methodStepConfig.andThen(bsb -> {
@@ -540,10 +548,96 @@ public final class ExtensionLoader {
             } else {
                 methodParamFns = new ArrayList<>(methodParameters.length);
                 for (Parameter parameter : methodParameters) {
+                    final Class<?> parameterClass = parameter.getType();
+
+                    if (parameterClass.isAnnotationPresent(ConfigRoot.class)) {
+                        final ConfigRoot annotation = parameterClass.getAnnotation(ConfigRoot.class);
+                        final ConfigPhase phase = annotation.phase();
+                        methodConsumingConfigPhases.add(phase);
+
+                        if (phase.isAvailableAtBuild()) {
+                            methodParamFns.add((bc, bri) -> {
+                                final ConfigurationBuildItem configurationBuildItem = bc
+                                        .consume(ConfigurationBuildItem.class);
+                                return configurationBuildItem.getReadResult().requireRootObjectForClass(parameterClass);
+                            });
+                            if (isRecorder && phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
+                                runTimeProxies.computeIfAbsent(parameterClass, readResult::requireRootObjectForClass);
+                            }
+                        } else if (phase.isReadAtMain()) {
+                            if (isRecorder) {
+                                methodParamFns.add((bc, bri) -> {
+                                    final RunTimeConfigurationProxyBuildItem proxies = bc
+                                            .consume(RunTimeConfigurationProxyBuildItem.class);
+                                    return proxies.getProxyObjectFor(parameterClass);
+                                });
+                                runTimeProxies.computeIfAbsent(parameterClass, ReflectUtil::newInstance);
+                            } else {
+                                throw reportError(parameter,
+                                        phase + " configuration cannot be consumed here unless the method is a @Recorder");
+                            }
+                        } else {
+                            throw reportError(parameterClass, "Unknown value for ConfigPhase");
+                        }
+                        continue;
+                    } else if (isRecorder(parameter.getType())) {
+                        if (!isRecorder) {
+                            throw reportError(parameter,
+                                    "Cannot pass recorders to method which is not annotated with " + Record.class);
+                        }
+                        methodParamFns.add((bc, bri) -> {
+                            assert bri != null;
+                            return bri.getRecordingProxy(parameterClass);
+                        });
+                        //now look for recorder parameter injection
+                        //as we now inject config directly into recorders we need to look at the constructor params
+                        Constructor<?>[] ctors = parameter.getType().getDeclaredConstructors();
+                        for (var ctor : ctors) {
+                            if (ctors.length == 1 || ctor.isAnnotationPresent(Inject.class)) {
+                                for (var type : ctor.getGenericParameterTypes()) {
+                                    Class<?> theType = null;
+                                    if (type instanceof ParameterizedType) {
+                                        ParameterizedType pt = (ParameterizedType) type;
+                                        if (pt.getRawType().equals(RuntimeValue.class)) {
+                                            theType = (Class<?>) pt.getActualTypeArguments()[0];
+                                        } else {
+                                            throw new RuntimeException("Unknown recorder constructor parameter: " + type
+                                                    + " in recorder " + parameter.getType());
+                                        }
+                                    } else {
+                                        theType = (Class<?>) type;
+                                    }
+                                    ConfigRoot annotation = theType.getAnnotation(ConfigRoot.class);
+                                    if (annotation != null) {
+                                        if (recordAnnotation.value() == ExecutionTime.STATIC_INIT) {
+                                            methodConsumingConfigPhases.add(ConfigPhase.BUILD_AND_RUN_TIME_FIXED);
+                                        } else {
+                                            methodConsumingConfigPhases.add(annotation.phase());
+                                        }
+                                        if (annotation.phase().isReadAtMain()) {
+                                            runTimeProxies.computeIfAbsent(theType, ReflectUtil::newInstance);
+                                        } else {
+                                            runTimeProxies.computeIfAbsent(theType,
+                                                    readResult::requireRootObjectForClass);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        continue;
+                    } else if (parameter.getType() == RecorderContext.class
+                            || parameter.getType() == BytecodeRecorderImpl.class) {
+                        if (!isRecorder) {
+                            throw reportError(parameter,
+                                    "Cannot pass recorder context to method which is not annotated with " + Record.class);
+                        }
+                        methodParamFns.add((bc, bri) -> bri);
+                        continue;
+                    }
+
                     final boolean weak = parameter.isAnnotationPresent(Weak.class);
                     final boolean overridable = parameter.isAnnotationPresent(Overridable.class);
                     final Type parameterType = parameter.getParameterizedType();
-                    final Class<?> parameterClass = parameter.getType();
                     if (rawTypeExtends(parameterType, SimpleBuildItem.class)) {
                         final Class<? extends SimpleBuildItem> buildItemClass = parameterClass
                                 .asSubclass(SimpleBuildItem.class);
@@ -614,87 +708,6 @@ public final class ExtensionLoader {
                                 .ofNullable(bc.consume(buildItemClass)));
                     } else if (rawTypeOf(parameterType) == Executor.class) {
                         methodParamFns.add((bc, bri) -> bc.getExecutor());
-                    } else if (parameterClass.isAnnotationPresent(ConfigRoot.class)) {
-                        final ConfigRoot annotation = parameterClass.getAnnotation(ConfigRoot.class);
-                        final ConfigPhase phase = annotation.phase();
-                        methodConsumingConfigPhases.add(phase);
-
-                        if (phase.isAvailableAtBuild()) {
-                            methodParamFns.add((bc, bri) -> {
-                                final ConfigurationBuildItem configurationBuildItem = bc
-                                        .consume(ConfigurationBuildItem.class);
-                                return configurationBuildItem.getReadResult().requireRootObjectForClass(parameterClass);
-                            });
-                            if (isRecorder && phase == ConfigPhase.BUILD_AND_RUN_TIME_FIXED) {
-                                runTimeProxies.computeIfAbsent(parameterClass, readResult::requireRootObjectForClass);
-                            }
-                        } else if (phase.isReadAtMain()) {
-                            if (isRecorder) {
-                                methodParamFns.add((bc, bri) -> {
-                                    final RunTimeConfigurationProxyBuildItem proxies = bc
-                                            .consume(RunTimeConfigurationProxyBuildItem.class);
-                                    return proxies.getProxyObjectFor(parameterClass);
-                                });
-                                runTimeProxies.computeIfAbsent(parameterClass, ReflectUtil::newInstance);
-                            } else {
-                                throw reportError(parameter,
-                                        phase + " configuration cannot be consumed here unless the method is a @Recorder");
-                            }
-                        } else {
-                            throw reportError(parameterClass, "Unknown value for ConfigPhase");
-                        }
-                    } else if (isRecorder(parameter.getType())) {
-                        if (!isRecorder) {
-                            throw reportError(parameter,
-                                    "Cannot pass recorders to method which is not annotated with " + Record.class);
-                        }
-                        methodParamFns.add((bc, bri) -> {
-                            assert bri != null;
-                            return bri.getRecordingProxy(parameterClass);
-                        });
-                        //now look for recorder parameter injection
-                        //as we now inject config directly into recorders we need to look at the constructor params
-                        Constructor<?>[] ctors = parameter.getType().getDeclaredConstructors();
-                        for (var ctor : ctors) {
-                            if (ctors.length == 1 || ctor.isAnnotationPresent(Inject.class)) {
-                                for (var type : ctor.getGenericParameterTypes()) {
-                                    Class<?> theType = null;
-                                    if (type instanceof ParameterizedType) {
-                                        ParameterizedType pt = (ParameterizedType) type;
-                                        if (pt.getRawType().equals(RuntimeValue.class)) {
-                                            theType = (Class<?>) pt.getActualTypeArguments()[0];
-                                        } else {
-                                            throw new RuntimeException("Unknown recorder constructor parameter: " + type
-                                                    + " in recorder " + parameter.getType());
-                                        }
-                                    } else {
-                                        theType = (Class<?>) type;
-                                    }
-                                    ConfigRoot annotation = theType.getAnnotation(ConfigRoot.class);
-                                    if (annotation != null) {
-                                        if (recordAnnotation.value() == ExecutionTime.STATIC_INIT) {
-                                            methodConsumingConfigPhases.add(ConfigPhase.BUILD_AND_RUN_TIME_FIXED);
-                                        } else {
-                                            methodConsumingConfigPhases.add(annotation.phase());
-                                        }
-                                        if (annotation.phase().isReadAtMain()) {
-                                            runTimeProxies.computeIfAbsent(theType, ReflectUtil::newInstance);
-                                        } else {
-                                            runTimeProxies.computeIfAbsent(theType,
-                                                    readResult::requireRootObjectForClass);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                    } else if (parameter.getType() == RecorderContext.class
-                            || parameter.getType() == BytecodeRecorderImpl.class) {
-                        if (!isRecorder) {
-                            throw reportError(parameter,
-                                    "Cannot pass recorder context to method which is not annotated with " + Record.class);
-                        }
-                        methodParamFns.add((bc, bri) -> bri);
                     } else {
                         throw reportError(parameter, "Unsupported method parameter " + parameterType);
                     }
