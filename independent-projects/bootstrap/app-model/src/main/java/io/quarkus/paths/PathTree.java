@@ -1,8 +1,10 @@
 package io.quarkus.paths;
 
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.function.Function;
 import java.util.jar.Manifest;
@@ -10,13 +12,29 @@ import java.util.jar.Manifest;
 public interface PathTree {
 
     static PathTree of(Path p) {
-        if (Files.isDirectory(p)) {
-            return new DirectoryPathTree(p);
-        }
-        if (Files.exists(p)) {
+        try {
+            BasicFileAttributes fileAttributes = Files.readAttributes(p, BasicFileAttributes.class);
+            if (fileAttributes.isDirectory()) {
+                return new DirectoryPathTree(p);
+            }
+
             return new FilePathTree(p);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(p + " does not exist");
         }
-        throw new IllegalArgumentException(p + " does not exist");
+    }
+
+    static PathTree ofMultiPathTree(Path p) {
+        try {
+            BasicFileAttributes fileAttributes = Files.readAttributes(p, BasicFileAttributes.class);
+            if (fileAttributes.isDirectory()) {
+                return new DirectoryPathTree(p);
+            }
+
+            return new ArchivePathTree(p);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(p + " does not exist");
+        }
     }
 
     static PathTree ofArchive(Path archive) {
