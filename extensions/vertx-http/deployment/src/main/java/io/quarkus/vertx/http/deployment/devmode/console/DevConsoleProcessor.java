@@ -706,7 +706,8 @@ public class DevConsoleProcessor {
     }
 
     @BuildStep
-    void collectTemplates(BuildProducer<DevTemplatePathBuildItem> devTemplatePaths) {
+    void collectTemplates(BuildProducer<DevTemplatePathBuildItem> devTemplatePaths,
+            CurateOutcomeBuildItem curateOutcomeBuildItem) {
         try {
             ClassLoader classLoader = DevConsoleProcessor.class.getClassLoader();
             Enumeration<URL> devTemplateURLs = classLoader.getResources("/dev-templates");
@@ -719,9 +720,13 @@ public class DevConsoleProcessor {
                         // on Windows this will be /C:/some/path, so turn it into C:\some\path
                         jarPath = jarPath.substring(1).replace('/', '\\');
                     }
-                    try (FileSystem fs = ZipUtils
-                            .newFileSystem(Paths.get(URLDecoder.decode(jarPath, StandardCharsets.UTF_8.name())), classLoader)) {
-                        scanTemplates(fs, null, fs.getRootDirectories(), devTemplatePaths);
+
+                    Map.Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(this.getClass(), curateOutcomeBuildItem);
+                    if (entry.getKey().equals("unspecified")) {
+                        throw new RuntimeException("Missing pom metadata [jarpath: " + jarPath + "]");
+                    }
+                    try (FileSystem fs = ZipUtils.newFileSystem(Paths.get(URLDecoder.decode(jarPath, StandardCharsets.UTF_8.name())), classLoader)) {
+                        scanTemplates(fs.getRootDirectories(), devTemplatePaths, entry);
                     }
                 } else if ("file".equals(devTemplatesURL.getProtocol())) {
                     // This can happen if you run an example app in dev mode 
@@ -733,7 +738,14 @@ public class DevConsoleProcessor {
                     if (target != null) {
                         Path mavenArchiver = target.resolve("maven-archiver");
                         if (mavenArchiver.toFile().canRead()) {
-                            scanTemplates(null, mavenArchiver, Collections.singleton(classes), devTemplatePaths);
+                            Map.Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(mavenArchiver);
+
+                            if (entry == null) {
+                                throw new RuntimeException("Missing pom metadata [rootDirectories: " + classes
+                                        + ", pomPath: " + mavenArchiver + "]");
+                            }
+
+                            scanTemplates(Collections.singleton(classes), devTemplatePaths, entry);
                         }
                     }
                 }
@@ -743,15 +755,9 @@ public class DevConsoleProcessor {
         }
     }
 
-    private void scanTemplates(FileSystem fs, Path pomPropertiesPath, Iterable<Path> rootDirectories,
-            BuildProducer<DevTemplatePathBuildItem> devTemplatePaths)
+    private void scanTemplates(Iterable<Path> rootDirectories,
+            BuildProducer<DevTemplatePathBuildItem> devTemplatePaths, Map.Entry<String, String> entry)
             throws IOException {
-        Entry<String, String> entry = fs != null ? ArtifactInfoUtil.groupIdAndArtifactId(fs)
-                : ArtifactInfoUtil.groupIdAndArtifactId(pomPropertiesPath);
-        if (entry == null) {
-            throw new RuntimeException("Missing pom metadata [fileSystem: " + fs + ", rootDirectories: " + rootDirectories
-                    + ", pomPath: " + pomPropertiesPath + "]");
-        }
         String prefix;
         // don't move stuff for our "root" dev console artifact, since it includes the main template
         if (entry.getKey().equals("io.quarkus")
