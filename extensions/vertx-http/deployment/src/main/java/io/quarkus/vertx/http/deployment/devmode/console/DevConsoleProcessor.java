@@ -721,11 +721,13 @@ public class DevConsoleProcessor {
                         jarPath = jarPath.substring(1).replace('/', '\\');
                     }
 
-                    Map.Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(this.getClass(), curateOutcomeBuildItem);
+                    Map.Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(this.getClass(),
+                            curateOutcomeBuildItem);
                     if (entry.getKey().equals("unspecified")) {
                         throw new RuntimeException("Missing pom metadata [jarpath: " + jarPath + "]");
                     }
-                    try (FileSystem fs = ZipUtils.newFileSystem(Paths.get(URLDecoder.decode(jarPath, StandardCharsets.UTF_8.name())), classLoader)) {
+                    try (FileSystem fs = ZipUtils
+                            .newFileSystem(Paths.get(URLDecoder.decode(jarPath, StandardCharsets.UTF_8.name())), classLoader)) {
                         scanTemplates(fs.getRootDirectories(), devTemplatePaths, entry);
                     }
                 } else if ("file".equals(devTemplatesURL.getProtocol())) {
@@ -734,20 +736,12 @@ public class DevConsoleProcessor {
                     // Just try to locate the pom.properties file in the target/maven-archiver directory
                     // Note that this hack will not work if addMavenDescriptor=false or if the pomPropertiesFile is overriden
                     Path classes = Paths.get(devTemplatesURL.toURI()).getParent();
-                    Path target = classes != null ? classes.getParent() : null;
-                    if (target != null) {
-                        Path mavenArchiver = target.resolve("maven-archiver");
-                        if (mavenArchiver.toFile().canRead()) {
-                            Map.Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(mavenArchiver);
-
-                            if (entry == null) {
-                                throw new RuntimeException("Missing pom metadata [rootDirectories: " + classes
-                                        + ", pomPath: " + mavenArchiver + "]");
-                            }
-
-                            scanTemplates(Collections.singleton(classes), devTemplatePaths, entry);
-                        }
+                    Entry<String, String> entry = ArtifactInfoUtil.groupIdAndArtifactId(classes, null);
+                    if (entry.getKey().equals("unspecified")) {
+                        throw new RuntimeException("Missing pom metadata [rootDirectories: " + classes + "]");
                     }
+
+                    scanTemplates(Collections.singleton(classes), devTemplatePaths, entry);
                 }
             }
         } catch (IOException | URISyntaxException e) {

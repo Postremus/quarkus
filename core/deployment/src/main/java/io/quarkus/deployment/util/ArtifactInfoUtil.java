@@ -47,8 +47,17 @@ public final class ArtifactInfoUtil {
             CurateOutcomeBuildItem curateOutcomeBuildItem) {
         try {
             URL codeLocation = clazz.getProtectionDomain().getCodeSource().getLocation();
+            Path path = Paths.get(codeLocation.toURI());
+            return groupIdAndArtifactId(path, curateOutcomeBuildItem);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains " + clazz.getName(),
+                    e);
+        }
+    }
+
+    public static Map.Entry<String, String> groupIdAndArtifactId(Path path, CurateOutcomeBuildItem curateOutcomeBuildItem) {
+        try {
             if (curateOutcomeBuildItem != null) {
-                Path path = Paths.get(codeLocation.toURI());
                 String pathAsString = path.toString();
                 // Workspace artifacts paths are resolved to the maven module, not the jar file
                 // If the clazz is inside a jar, but does not contain the artifact name, we have to open
@@ -72,35 +81,33 @@ public final class ArtifactInfoUtil {
                 }
             }
 
-            if (codeLocation.toString().endsWith(".jar")) {
+            if (path.toString().endsWith(".jar")) {
                 // Search inside the jar for pom properties, needed for workspace artifacts
-                try (FileSystem fs = ZipUtils.newFileSystem(Paths.get(codeLocation.toURI()),
-                        Thread.currentThread().getContextClassLoader())) {
+                try (FileSystem fs = ZipUtils.newFileSystem(path)) {
                     Entry<String, String> ret = groupIdAndArtifactId(fs);
                     if (ret == null) {
                         throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains "
-                                + clazz.getName() + " because the jar doesn't contain the necessary metadata");
+                                + path + " because the jar doesn't contain the necessary metadata");
                     }
                     return ret;
                 }
-            } else if ("file".equals(codeLocation.getProtocol())) {
+            } else if (Files.isDirectory(path)) {
                 // E.g. /quarkus/extensions/arc/deployment/target/classes/io/quarkus/arc/deployment/devconsole
                 // This can happen if you run an example app in dev mode
                 // and this app is part of a multi-module project which also declares the extension
                 // Just try to locate the pom.properties file in the target/maven-archiver directory
                 // Note that this hack will not work if addMavenDescriptor=false or if the pomPropertiesFile is overriden
-                Path location = Paths.get(codeLocation.toURI());
-                while (!isDeploymentTargetClasses(location) && location.getParent() != null) {
-                    location = location.getParent();
+                while (!isDeploymentTargetClasses(path) && path.getParent() != null) {
+                    path = path.getParent();
                 }
-                if (location != null) {
-                    Path mavenArchiver = location.getParent().resolve("maven-archiver");
+                if (path.getParent() != null) {
+                    Path mavenArchiver = path.getParent().resolve("maven-archiver");
                     if (mavenArchiver.toFile().canRead()) {
                         Entry<String, String> ret = groupIdAndArtifactId(mavenArchiver);
                         if (ret == null) {
                             throw new RuntimeException(
                                     "Unable to determine groupId and artifactId of the extension that contains "
-                                            + clazz.getName()
+                                            + path
                                             + " because the directory doesn't contain the necessary metadata");
                         }
                         return ret;
@@ -110,8 +117,8 @@ public final class ArtifactInfoUtil {
             } else {
                 return new AbstractMap.SimpleEntry<>("unspecified", "unspecified");
             }
-        } catch (IOException | URISyntaxException e) {
-            throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains " + clazz.getName(),
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to determine groupId and artifactId of the jar that contains " + path,
                     e);
         }
     }
