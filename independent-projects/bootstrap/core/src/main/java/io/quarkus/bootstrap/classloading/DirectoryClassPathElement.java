@@ -83,8 +83,8 @@ public class DirectoryClassPathElement extends AbstractClassPathElement {
                         // the URLClassLoader doesn't add trailing slashes to directories, so we make sure we return
                         // the same URL as it would to avoid having QuarkusClassLoader return different URLs
                         // (one with a trailing slash and one without) for same resource
-                        if (uri.getPath().endsWith("/")) {
-                            String uriStr = uri.toString();
+                        String uriStr = uri.toString();
+                        if (uriStr.charAt(uriStr.length() - 1) == '/') {
                             return new URL(uriStr.substring(0, uriStr.length() - 1));
                         }
                         return uri.toURL();

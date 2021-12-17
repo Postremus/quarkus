@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -16,6 +15,7 @@ import java.nio.file.Path;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -37,16 +37,8 @@ public class JarClassPathElement implements ClassPathElement {
     public static final int JAVA_VERSION;
 
     static {
-        int version = 8;
-        try {
-            Method versionMethod = Runtime.class.getMethod("version");
-            Object v = versionMethod.invoke(null);
-            List<Integer> list = (List<Integer>) v.getClass().getMethod("version").invoke(v);
-            version = list.get(0);
-        } catch (Exception e) {
-            //version 8
-        }
-        JAVA_VERSION = version;
+        JAVA_VERSION = Runtime.version().version().get(0);
+
         //force this class to be loaded
         //if quarkus is recompiled it needs to have already
         //been loaded
@@ -67,6 +59,7 @@ public class JarClassPathElement implements ClassPathElement {
     //Closing the jarFile requires the exclusive lock, while reading data from the jarFile requires the shared lock.
     private final JarFile jarFile;
     private volatile boolean closed;
+    private ISMR ismr = new ISMR();
 
     public JarClassPathElement(Path root) {
         try {
@@ -109,7 +102,7 @@ public class JarClassPathElement implements ClassPathElement {
                             try {
                                 String realName = JarEntries.getRealName(res);
                                 // Avoid ending the URL with / to avoid breaking compatibility
-                                if (realName.endsWith("/")) {
+                                if (realName.charAt(realName.length() - 1) == '/') {
                                     realName = realName.substring(0, realName.length() - 1);
                                 }
                                 String urlFile = jarPath.getProtocol() + ":" + jarPath.getPath() + "!/" + realName;
@@ -163,7 +156,7 @@ public class JarClassPathElement implements ClassPathElement {
 
                         @Override
                         public boolean isDirectory() {
-                            return res.getName().endsWith("/");
+                            return res.getName().charAt(res.getName().length() - 1) == '/';
                         }
                     };
                 }
@@ -197,39 +190,50 @@ public class JarClassPathElement implements ClassPathElement {
         return withJarFile((new Function<JarFile, Set<String>>() {
             @Override
             public Set<String> apply(JarFile jarFile) {
-                Set<String> paths = new HashSet<>();
+                List<String> paths = new ArrayList<>();
                 Enumeration<JarEntry> entries = jarFile.entries();
                 while (entries.hasMoreElements()) {
                     JarEntry entry = entries.nextElement();
-                    if (entry.getName().endsWith("/")) {
-                        paths.add(entry.getName().substring(0, entry.getName().length() - 1));
+                    String name = entry.getName();
+                    if (name.charAt(name.length() - 1) == '/') {
+                        paths.add(name.substring(0, name.length() - 1));
                     } else {
-                        paths.add(entry.getName());
+                        paths.add(name);
                     }
-                }
-                //multi release jars can add additional entries
-                if (JarFiles.isMultiRelease(jarFile)) {
-                    String[] copyToIterate = paths.toArray(new String[0]);
-                    for (String i : copyToIterate) {
-                        if (i.startsWith(META_INF_VERSIONS)) {
-                            String part = i.substring(META_INF_VERSIONS.length());
-                            int slash = part.indexOf("/");
-                            if (slash != -1) {
-                                try {
-                                    int ver = Integer.parseInt(part.substring(0, slash));
-                                    if (ver <= JAVA_VERSION) {
-                                        paths.add(part.substring(slash + 1));
-                                    }
-                                } catch (NumberFormatException e) {
-                                    log.debug("Failed to parse META-INF/versions entry", e);
+                    if (name.startsWith(META_INF_VERSIONS) && ismr.isMR(jarFile)) {
+                        String part = name.substring(META_INF_VERSIONS.length());
+                        int slash = part.indexOf("/");
+                        if (slash != -1) {
+                            try {
+                                int ver = Integer.parseInt(part.substring(0, slash));
+                                if (ver <= JAVA_VERSION) {
+                                    paths.add(part.substring(slash + 1));
                                 }
+                            } catch (NumberFormatException e) {
+                                log.debug("Failed to parse META-INF/versions entry", e);
                             }
                         }
                     }
                 }
-                return paths;
+                return new HashSet<>(paths);
             }
         }));
+    }
+
+    private final class ISMR {
+
+        private boolean isIt;
+
+        private boolean init;
+
+        public boolean isMR(JarFile jarFile) {
+            if (init) {
+                return isIt;
+            }
+            isIt = JarFiles.isMultiRelease(jarFile);
+            init = true;
+            return isIt;
+        }
     }
 
     @Override
@@ -271,15 +275,13 @@ public class JarClassPathElement implements ClassPathElement {
     }
 
     public static byte[] readStreamContents(InputStream inputStream) throws IOException {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[10000];
+        try (inputStream; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
             int r;
             while ((r = inputStream.read(buf)) > 0) {
                 out.write(buf, 0, r);
             }
             return out.toByteArray();
-        } finally {
-            inputStream.close();
         }
     }
 

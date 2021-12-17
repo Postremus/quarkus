@@ -107,10 +107,10 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
     }
 
     private String sanitizeName(String name) {
-        if (name.startsWith("/")) {
+        if (name.charAt(0) == '/') {
             name = name.substring(1);
         }
-        if (name.endsWith("/")) {
+        if (name.charAt(name.length() - 1) == '/') {
             name = name.substring(0, name.length() - 1);
         }
         return name;
@@ -166,7 +166,7 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
         for (ClassLoaderEventListener l : classLoaderEventListeners) {
             l.enumeratingResourceURLs(unsanitisedName, this.name);
         }
-        boolean endsWithTrailingSlash = unsanitisedName.endsWith("/");
+        boolean endsWithTrailingSlash = unsanitisedName.charAt(unsanitisedName.length() - 1) == '/';
         ClassLoaderState state = getState();
         String name = sanitizeName(unsanitisedName);
         //for resources banned means that we don't delegate to the parent, as there can be multiple resources
@@ -242,59 +242,63 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
     private ClassLoaderState getState() {
         ClassLoaderState state = this.state;
         if (state == null) {
-            synchronized (this) {
-                state = this.state;
-                if (state == null) {
-                    Map<String, List<ClassPathElement>> elementMap = new HashMap<>();
-                    for (ClassPathElement element : elements) {
-                        for (String i : element.getProvidedResources()) {
-                            if (i.startsWith("/")) {
-                                throw new RuntimeException(
-                                        "Resources cannot start with /, " + i + " is incorrect provided by " + element);
-                            }
-                            if (transformedClasses.getResource(i) != null) {
-                                elementMap.put(i, Collections.singletonList(transformedClasses));
-                            } else {
-                                List<ClassPathElement> list = elementMap.get(i);
-                                if (list == null) {
-                                    elementMap.put(i, list = new ArrayList<>(2)); //default initial capacity of 10 is way too large
-                                }
-                                list.add(element);
-                            }
+            Map<String, List<ClassPathElement>> elementMap = new HashMap<>();
+            for (ClassPathElement element : elements) {
+                for (String i : element.getProvidedResources()) {
+                    if (i.length() > 0 && i.charAt(0) == '/') {
+                        throw new RuntimeException(
+                                "Resources cannot start with /, " + i + " is incorrect provided by " + element);
+                    }
+                    if (transformedClasses.getResource(i) != null) {
+                        elementMap.put(i, Collections.singletonList(transformedClasses));
+                    } else {
+                        List<ClassPathElement> list = elementMap.get(i);
+                        if (list == null) {
+                            elementMap.put(i, list = new ArrayList<>(2)); //default initial capacity of 10 is way too large
                         }
+                        list.add(element);
                     }
-                    Map<String, ClassPathElement[]> finalElements = new HashMap<>();
-                    for (Map.Entry<String, List<ClassPathElement>> i : elementMap.entrySet()) {
-                        List<ClassPathElement> entryClassPathElements = i.getValue();
-                        if (!lesserPriorityElements.isEmpty() && (entryClassPathElements.size() > 1)) {
-                            List<ClassPathElement> entryNormalPriorityElements = new ArrayList<>(entryClassPathElements.size());
-                            List<ClassPathElement> entryLesserPriorityElements = new ArrayList<>(entryClassPathElements.size());
-                            for (ClassPathElement classPathElement : entryClassPathElements) {
-                                if (lesserPriorityElements.contains(classPathElement)) {
-                                    entryLesserPriorityElements.add(classPathElement);
-                                } else {
-                                    entryNormalPriorityElements.add(classPathElement);
-                                }
-                            }
-                            // ensure the lesser priority elements are added later
-                            entryClassPathElements = new ArrayList<>(entryClassPathElements.size());
-                            entryClassPathElements.addAll(entryNormalPriorityElements);
-                            entryClassPathElements.addAll(entryLesserPriorityElements);
-                        }
-                        finalElements.put(i.getKey(),
-                                entryClassPathElements.toArray(new ClassPathElement[entryClassPathElements.size()]));
-                    }
-                    Set<String> banned = new HashSet<>();
-                    for (ClassPathElement i : bannedElements) {
-                        banned.addAll(i.getProvidedResources());
-                    }
-                    Set<String> parentFirstResources = new HashSet<>();
-                    for (ClassPathElement i : parentFirstElements) {
-                        parentFirstResources.addAll(i.getProvidedResources());
-                    }
-                    return this.state = new ClassLoaderState(finalElements, banned, parentFirstResources);
                 }
             }
+            Map<String, ClassPathElement[]> finalElements = new HashMap<>();
+            for (Map.Entry<String, List<ClassPathElement>> i : elementMap.entrySet()) {
+                List<ClassPathElement> entryClassPathElements = i.getValue();
+                if (!lesserPriorityElements.isEmpty() && (entryClassPathElements.size() > 1)) {
+                    List<ClassPathElement> entryNormalPriorityElements = new ArrayList<>(entryClassPathElements.size());
+                    List<ClassPathElement> entryLesserPriorityElements = new ArrayList<>(entryClassPathElements.size());
+                    for (ClassPathElement classPathElement : entryClassPathElements) {
+                        if (lesserPriorityElements.contains(classPathElement)) {
+                            entryLesserPriorityElements.add(classPathElement);
+                        } else {
+                            entryNormalPriorityElements.add(classPathElement);
+                        }
+                    }
+                    // ensure the lesser priority elements are added later
+                    ClassPathElement[] elements = new ClassPathElement[entryClassPathElements.size()];
+                    int idx = 0;
+                    for (ClassPathElement entryClassPathElement : entryNormalPriorityElements) {
+                        elements[idx] = entryClassPathElement;
+                        idx++;
+                    }
+                    for (ClassPathElement entryClassPathElement : entryLesserPriorityElements) {
+                        elements[idx] = entryClassPathElement;
+                        idx++;
+                    }
+                    finalElements.put(i.getKey(), elements);
+                } else {
+                    finalElements.put(i.getKey(),
+                            entryClassPathElements.toArray(new ClassPathElement[0]));
+                }
+            }
+            Set<String> banned = new HashSet<>();
+            for (ClassPathElement i : bannedElements) {
+                banned.addAll(i.getProvidedResources());
+            }
+            Set<String> parentFirstResources = new HashSet<>();
+            for (ClassPathElement i : parentFirstElements) {
+                parentFirstResources.addAll(i.getProvidedResources());
+            }
+            return this.state = new ClassLoaderState(finalElements, banned, parentFirstResources);
         }
         return state;
     }
@@ -304,7 +308,7 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
         for (ClassLoaderEventListener l : classLoaderEventListeners) {
             l.gettingURLFromResource(unsanitisedName, this.name);
         }
-        boolean endsWithTrailingSlash = unsanitisedName.endsWith("/");
+        boolean endsWithTrailingSlash = unsanitisedName.charAt(unsanitisedName.length() - 1) == '/';
         String name = sanitizeName(unsanitisedName);
         ClassLoaderState state = getState();
         if (state.bannedResources.contains(name)) {
@@ -399,9 +403,6 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
 
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
-        for (ClassLoaderEventListener l : classLoaderEventListeners) {
-            l.loadClass(name, this.name);
-        }
         return loadClass(name, false);
     }
 
