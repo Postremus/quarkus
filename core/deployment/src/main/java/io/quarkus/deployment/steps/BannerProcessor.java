@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.Enumeration;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.jar.JarFile;
 
 import org.jboss.logging.Logger;
@@ -56,12 +55,7 @@ public class BannerProcessor {
                     byte[] content = FileUtil.readFileContents(is);
                     String bannerTitle = new String(content, StandardCharsets.UTF_8);
 
-                    int width = 0;
-                    try (Scanner scanner = new Scanner(bannerTitle)) {
-                        while (scanner.hasNextLine()) {
-                            width = Math.max(width, scanner.nextLine().length());
-                        }
-                    }
+                    int width = bannerTitle.lines().map(String::length).max(Integer::compareTo).orElse(0);
 
                     String tagline = "\n";
                     Boolean isDefaultBanner = entry.getValue();

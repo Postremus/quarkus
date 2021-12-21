@@ -1247,7 +1247,7 @@ public class VertxHttpRecorder {
                                 //this can happen if blocking authentication is involved for get requests
                                 if (!event.request().isEnded()) {
                                     event.request().resume();
-                                    if (CAN_HAVE_BODY.contains(event.request().method())) {
+                                    if (CAN_HAVE_BODY.contains(event.request().method().name())) {
                                         bodyHandler.handle(event);
                                     } else {
                                         event.next();
@@ -1264,7 +1264,7 @@ public class VertxHttpRecorder {
                     if (!event.request().isEnded()) {
                         event.request().resume();
                     }
-                    if (CAN_HAVE_BODY.contains(event.request().method())) {
+                    if (CAN_HAVE_BODY.contains(event.request().method().name())) {
                         bodyHandler.handle(event);
                     } else {
                         event.next();
@@ -1274,8 +1274,8 @@ public class VertxHttpRecorder {
         };
     }
 
-    private static final List<HttpMethod> CAN_HAVE_BODY = Arrays.asList(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH,
-            HttpMethod.DELETE);
+    private static final List<String> CAN_HAVE_BODY = Arrays.asList("POST", "PUT", "PATCH",
+            "DELETE");
 
     private BiConsumer<Cookie, HttpServerRequest> processSameSiteConfig(Map<String, SameSiteCookieConfig> httpConfiguration) {
 

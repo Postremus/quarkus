@@ -235,6 +235,7 @@ public class DevConsoleProcessor {
         vertxOptions.getMetricsOptions().setEnabled(false);
         //Not good for development:
         vertxOptions.getFileSystemOptions().setFileCachingEnabled(false);
+        vertxOptions.getFileSystemOptions().setClassPathResolvingEnabled(false);
         VertxBuilder builder = new VertxBuilder(vertxOptions);
         builder.threadFactory(new VertxThreadFactory() {
             @Override

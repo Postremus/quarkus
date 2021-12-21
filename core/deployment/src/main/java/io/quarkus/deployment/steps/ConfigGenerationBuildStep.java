@@ -247,11 +247,11 @@ public class ConfigGenerationBuildStep {
 
         // Profiles
         String profile = ProfileManager.getActiveProfile();
-        configWatchedFiles.add(String.format("application-%s.properties", profile));
-        configWatchedFiles.add(String.format("META-INF/microprofile-config-%s.properties", profile));
-        configWatchedFiles.add(Paths.get(userDir, String.format(".env-%s", profile)).toAbsolutePath().toString());
+        configWatchedFiles.add("application-" + profile + ".properties");
+        configWatchedFiles.add("META-INF/microprofile-config-" + profile + ".properties");
+        configWatchedFiles.add(Paths.get(userDir, ".env-" + profile).toAbsolutePath().toString());
         configWatchedFiles.add(
-                Paths.get(userDir, "config", String.format("application-%s.properties", profile)).toAbsolutePath().toString());
+                Paths.get(userDir, "config", "application" + profile + ".properties").toAbsolutePath().toString());
 
         Optional<List<String>> optionalLocations = config.getOptionalValues(SMALLRYE_CONFIG_LOCATIONS, String.class);
         optionalLocations.ifPresent(locations -> {
