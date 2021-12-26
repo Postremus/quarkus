@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -24,6 +25,7 @@ import org.jboss.logging.Logger;
 import io.quarkus.bootstrap.app.CuratedApplication;
 import io.quarkus.bootstrap.app.QuarkusBootstrap;
 import io.quarkus.bootstrap.model.PathsCollection;
+import io.quarkus.fs.util.FileSystemProviders;
 import io.quarkus.maven.dependency.ResolvedDependency;
 
 /**
@@ -74,7 +76,6 @@ public class QuarkusCompiler implements Closeable {
                 : context.getDevModeRunnerJarFile().getCanonicalPath();
         while (!toParse.isEmpty()) {
             Path path = toParse.poll();
-            URI uri = path.toUri();
             File file = path.toFile();
             String s = file.getAbsolutePath();
             if (!parsedFiles.contains(s)) {
@@ -82,9 +83,9 @@ public class QuarkusCompiler implements Closeable {
                 if (!file.exists()) {
                     continue;
                 }
-                if (uri.getScheme().equals("file")) {
+                if (path.getFileSystem() == FileSystems.getDefault()) {
                     classPathElements.add(file);
-                } else if (uri.getScheme().equals("jar")) {
+                } else if (path.getFileSystem().provider() == FileSystemProviders.ZIP_PROVIDER) {
                     // skip adding the dev mode runner jar to the classpath to prevent
                     // hitting a bug in JDK - https://bugs.openjdk.java.net/browse/JDK-8232170
                     // which causes the programmatic java file compilation to fail.
@@ -156,7 +157,7 @@ public class QuarkusCompiler implements Closeable {
                         + "'. It is advised that this module be compiled before launching dev mode");
                 return;
             }
-            compilationUnit.getSourcePaths().forEach(sourcePath -> {
+            for (Path sourcePath : compilationUnit.getSourcePaths()) {
                 this.compilationContexts.put(sourcePath.toString(),
                         new CompilationProvider.Context(
                                 i.getName(),
@@ -171,7 +172,7 @@ public class QuarkusCompiler implements Closeable {
                                 context.getTargetJvmVersion(),
                                 context.getCompilerPluginArtifacts(),
                                 context.getCompilerPluginsOptions()));
-            });
+            }
         }
     }
 

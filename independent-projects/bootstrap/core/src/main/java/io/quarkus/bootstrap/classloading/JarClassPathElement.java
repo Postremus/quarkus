@@ -8,9 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.CodeSource;
@@ -18,7 +16,6 @@ import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -37,16 +34,7 @@ public class JarClassPathElement implements ClassPathElement {
     public static final int JAVA_VERSION;
 
     static {
-        int version = 8;
-        try {
-            Method versionMethod = Runtime.class.getMethod("version");
-            Object v = versionMethod.invoke(null);
-            List<Integer> list = (List<Integer>) v.getClass().getMethod("version").invoke(v);
-            version = list.get(0);
-        } catch (Exception e) {
-            //version 8
-        }
-        JAVA_VERSION = version;
+        JAVA_VERSION = Runtime.version().version().get(0);
         //force this class to be loaded
         //if quarkus is recompiled it needs to have already
         //been loaded
@@ -234,13 +222,7 @@ public class JarClassPathElement implements ClassPathElement {
 
     @Override
     public ProtectionDomain getProtectionDomain(ClassLoader classLoader) {
-        final URL url;
-        try {
-            url = jarPath.toURI().toURL();
-        } catch (URISyntaxException | MalformedURLException e) {
-            throw new RuntimeException("Unable to create protection domain for " + jarPath, e);
-        }
-        CodeSource codesource = new CodeSource(url, (Certificate[]) null);
+        CodeSource codesource = new CodeSource(jarPath, (Certificate[]) null);
         return new ProtectionDomain(codesource, null, classLoader, null);
     }
 
