@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,7 +21,7 @@ class PathTreeVisit implements PathVisit {
         try (Stream<Path> files = Files.walk(rootDir)) {
             final Iterator<Path> i = files.iterator();
             while (i.hasNext()) {
-                if (!visit.setCurrent(i.next())) {
+                if (!visit.setCurrent(i.next(), null)) {
                     continue;
                 }
                 visitor.visitPath(visit);
@@ -34,17 +35,19 @@ class PathTreeVisit implements PathVisit {
         visit.visitMultiReleasePaths(visitor);
     }
 
-    static <T> T process(Path root, Path rootDir, Path path, PathFilter pathFilter, Function<PathVisit, T> func) {
+    static <T> T process(Path root, Path rootDir, Path path, BasicFileAttributes fileAttributes, PathFilter pathFilter,
+            Function<PathVisit, T> func) {
         final PathTreeVisit visit = new PathTreeVisit(root, rootDir, pathFilter, Collections.emptyMap());
-        if (visit.setCurrent(path)) {
+        if (visit.setCurrent(path, fileAttributes)) {
             return func.apply(visit);
         }
         return func.apply(null);
     }
 
-    static void consume(Path root, Path rootDir, Path path, PathFilter pathFilter, Consumer<PathVisit> func) {
+    static void consume(Path root, Path rootDir, Path path, BasicFileAttributes fileAttributes, PathFilter pathFilter,
+            Consumer<PathVisit> func) {
         final PathTreeVisit visit = new PathTreeVisit(root, rootDir, pathFilter, Collections.emptyMap());
-        if (visit.setCurrent(path)) {
+        if (visit.setCurrent(path, fileAttributes)) {
             func.accept(visit);
         } else {
             func.accept(null);
@@ -57,6 +60,7 @@ class PathTreeVisit implements PathVisit {
     private final Map<String, String> multiReleaseMapping;
 
     private Path current;
+    private volatile BasicFileAttributes currentFileAttributes;
     private String relativePath;
     private boolean stopWalking;
 
@@ -79,6 +83,18 @@ class PathTreeVisit implements PathVisit {
     }
 
     @Override
+    public BasicFileAttributes getFileAttributes() {
+        if (currentFileAttributes == null) {
+            try {
+                currentFileAttributes = Files.readAttributes(current, BasicFileAttributes.class);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return currentFileAttributes;
+    }
+
+    @Override
     public void stopWalking() {
         stopWalking = true;
     }
@@ -98,8 +114,9 @@ class PathTreeVisit implements PathVisit {
         return relativePath;
     }
 
-    private boolean setCurrent(Path path) {
+    private boolean setCurrent(Path path, BasicFileAttributes fileAttributes) {
         current = path;
+        this.currentFileAttributes = fileAttributes;
         relativePath = null;
         if (pathFilter != null) {
             relativePath = baseDir.relativize(path).toString();

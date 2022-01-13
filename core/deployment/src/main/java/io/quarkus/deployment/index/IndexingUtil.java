@@ -215,7 +215,7 @@ public class IndexingUtil {
             final Path fileName = visit.getPath().getFileName();
             if (fileName == null ||
                     !fileName.toString().endsWith(".class") ||
-                    Files.isDirectory(visit.getPath()) ||
+                    visit.getFileAttributes().isDirectory() ||
                     removed != null && removed.contains(visit.getRelativePath("/"))) {
                 return;
             }

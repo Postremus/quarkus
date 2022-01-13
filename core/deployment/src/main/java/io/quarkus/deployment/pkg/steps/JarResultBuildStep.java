@@ -1391,7 +1391,7 @@ public class JarResultBuildStep {
                             return;
                         }
                         try {
-                            if (Files.isDirectory(visit.getPath())) {
+                            if (visit.getFileAttributes().isDirectory()) {
                                 addDir(fs, relativePath);
                             } else {
                                 if (relativePath.startsWith("META-INF/services/") && relativePath.length() > 18

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Objects;
@@ -164,6 +165,11 @@ public class CachingPathTree implements OpenPathTree {
         }
 
         @Override
+        public BasicFileAttributes getFileAttributes() {
+            return target.getFileAttributes();
+        }
+
+        @Override
         public String getRelativePath(String separator) {
             return target.getRelativePath(separator);
         }
@@ -183,12 +189,14 @@ public class CachingPathTree implements OpenPathTree {
 
         private final Path root;
         private final Path path;
+        private final BasicFileAttributes fileAttributes;
         private final String relativePathStr;
         private volatile URL url;
 
         private PathVisitSnapshot(PathVisit visit) {
             this.root = visit.getRoot();
             this.path = visit.getPath();
+            this.fileAttributes = visit.getFileAttributes();
             this.relativePathStr = visit.getRelativePath("/");
         }
 
@@ -200,6 +208,11 @@ public class CachingPathTree implements OpenPathTree {
         @Override
         public Path getPath() {
             return path;
+        }
+
+        @Override
+        public BasicFileAttributes getFileAttributes() {
+            return fileAttributes;
         }
 
         @Override

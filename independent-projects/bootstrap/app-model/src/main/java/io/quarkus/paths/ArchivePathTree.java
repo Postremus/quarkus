@@ -63,7 +63,7 @@ public class ArchivePathTree extends PathTreeWithManifest implements PathTree {
                 if (!Files.exists(path)) {
                     continue;
                 }
-                return PathTreeVisit.process(archive, root, path, pathFilter, func);
+                return PathTreeVisit.process(archive, root, path, null, pathFilter, func);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read " + archive, e);
@@ -86,7 +86,7 @@ public class ArchivePathTree extends PathTreeWithManifest implements PathTree {
                 if (!Files.exists(path)) {
                     continue;
                 }
-                PathTreeVisit.consume(archive, root, path, pathFilter, consumer);
+                PathTreeVisit.consume(archive, root, path, null, pathFilter, consumer);
                 return;
             }
         } catch (IOException e) {

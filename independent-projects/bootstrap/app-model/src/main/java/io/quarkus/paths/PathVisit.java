@@ -3,6 +3,7 @@ package io.quarkus.paths;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 
 public interface PathVisit {
 
@@ -19,6 +20,8 @@ public interface PathVisit {
     }
 
     String getRelativePath(String separator);
+
+    BasicFileAttributes getFileAttributes();
 
     void stopWalking();
 }

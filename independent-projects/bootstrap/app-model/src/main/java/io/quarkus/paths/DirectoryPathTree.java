@@ -62,7 +62,7 @@ public class DirectoryPathTree extends PathTreeWithManifest implements OpenPathT
         if (!Files.exists(path)) {
             return func.apply(null);
         }
-        return PathTreeVisit.process(dir, dir, path, pathFilter, func);
+        return PathTreeVisit.process(dir, dir, path, null, pathFilter, func);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class DirectoryPathTree extends PathTreeWithManifest implements OpenPathT
             consumer.accept(null);
             return;
         }
-        PathTreeVisit.consume(dir, dir, path, pathFilter, consumer);
+        PathTreeVisit.consume(dir, dir, path, null, pathFilter, consumer);
     }
 
     @Override

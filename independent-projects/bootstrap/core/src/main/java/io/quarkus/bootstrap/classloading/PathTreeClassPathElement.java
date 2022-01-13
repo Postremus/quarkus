@@ -297,7 +297,7 @@ public class PathTreeClassPathElement extends AbstractClassPathElement {
                 if (pathTree.isOpen()) {
                     return Files.isDirectory(path);
                 }
-                return apply(tree -> tree.apply(name, visit -> visit == null ? null : Files.isDirectory(visit.getPath())));
+                return apply(tree -> tree.apply(name, visit -> visit == null ? null : visit.getFileAttributes().isDirectory()));
             } finally {
                 lock.readLock().unlock();
             }

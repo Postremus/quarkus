@@ -144,7 +144,7 @@ public abstract class PathTreeWithManifest implements PathTree {
                 return Collections.emptyMap();
             }
             final Path versionsDir = visit.getPath();
-            if (!Files.isDirectory(versionsDir)) {
+            if (!visit.getFileAttributes().isDirectory()) {
                 return Collections.emptyMap();
             }
             final Path root = visit.getPath().getRoot();

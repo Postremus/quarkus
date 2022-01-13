@@ -1,7 +1,9 @@
 package io.quarkus.paths;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -13,6 +15,7 @@ class FilePathTree implements OpenPathTree {
 
     private final Path file;
     private final PathFilter pathFilter;
+    private BasicFileAttributes fileAttributes;
 
     FilePathTree(Path file) {
         this(file, null);
@@ -21,6 +24,13 @@ class FilePathTree implements OpenPathTree {
     FilePathTree(Path file, PathFilter pathFilter) {
         this.file = file;
         this.pathFilter = pathFilter;
+
+        try {
+            this.fileAttributes = Files.readAttributes(file, BasicFileAttributes.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+            this.fileAttributes = null;
+        }
     }
 
     @Override
@@ -63,13 +73,22 @@ class FilePathTree implements OpenPathTree {
             public String getRelativePath(String separator) {
                 return "";
             }
+
+            @Override
+            public BasicFileAttributes getFileAttributes() {
+                try {
+                    return Files.readAttributes(file, BasicFileAttributes.class);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         });
     }
 
     @Override
     public <T> T apply(String relativePath, Function<PathVisit, T> func) {
         if (relativePath.isEmpty()) {
-            return PathTreeVisit.process(file, file, file, pathFilter, func);
+            return PathTreeVisit.process(file, file, file, fileAttributes, pathFilter, func);
         }
         return func.apply(null);
     }
@@ -77,7 +96,7 @@ class FilePathTree implements OpenPathTree {
     @Override
     public void accept(String relativePath, Consumer<PathVisit> func) {
         if (relativePath.isEmpty()) {
-            PathTreeVisit.consume(file, file, file, pathFilter, func);
+            PathTreeVisit.consume(file, file, file, fileAttributes, pathFilter, func);
             return;
         }
         func.accept(null);
