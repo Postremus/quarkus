@@ -1,36 +1,51 @@
 package io.quarkus.paths;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 class PathTreeVisit implements PathVisit {
 
     static void walk(Path root, Path rootDir, PathFilter pathFilter, Map<String, String> multiReleaseMapping,
             PathVisitor visitor) {
         final PathTreeVisit visit = new PathTreeVisit(root, rootDir, pathFilter, multiReleaseMapping);
-        try (Stream<Path> files = Files.walk(rootDir)) {
-            final Iterator<Path> i = files.iterator();
-            while (i.hasNext()) {
-                if (!visit.setCurrent(i.next(), null)) {
-                    continue;
+
+        try {
+            Files.walkFileTree(rootDir, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (!visit.setCurrent(dir, attrs)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    visitor.visitPath(visit);
+                    if (visit.isStopWalking()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+                    return FileVisitResult.CONTINUE;
                 }
-                visitor.visitPath(visit);
-                if (visit.isStopWalking()) {
-                    break;
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (!visit.setCurrent(file, attrs)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    visitor.visitPath(visit);
+                    if (visit.isStopWalking()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+                    return FileVisitResult.CONTINUE;
                 }
-            }
+            });
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to walk directory " + root, e);
+            e.printStackTrace();
         }
         visit.visitMultiReleasePaths(visitor);
     }
