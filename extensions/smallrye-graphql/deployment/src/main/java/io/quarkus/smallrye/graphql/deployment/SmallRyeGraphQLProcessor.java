@@ -537,7 +537,8 @@ public class SmallRyeGraphQLProcessor {
             String graphQLUiPath = nonApplicationRootPathBuildItem.resolvePath(graphQLConfig.ui.rootPath);
 
             webJarBuildProducer
-                    .produce(new WebJarBuildItem(GRAPHQL_UI_WEBJAR_ARTIFACT_KEY, GRAPHQL_UI_WEBJAR_STATIC_RESOURCES_PATH,
+                    .produce(new WebJarBuildItem(GRAPHQL_UI_WEBJAR_ARTIFACT_KEY, GRAPHQL_UI_WEBJAR_STATIC_RESOURCES_PATH, true,
+                            true,
                             GRAPHQL_UI_FINAL_DESTINATION, new WebJarResourcesFilter() {
                                 @Override
                                 public FilterResult apply(String fileName, InputStream file) throws IOException {
@@ -585,7 +586,7 @@ public class SmallRyeGraphQLProcessor {
                     .produce(new SmallRyeGraphQLBuildItem(result.getFinalDestination(), graphQLUiPath));
 
             Handler<RoutingContext> handler = recorder.uiHandler(result.getFinalDestination(),
-                    graphQLUiPath, runtimeConfig);
+                    graphQLUiPath, result.getWebRootConfigurations(), runtimeConfig);
             routeProducer.produce(nonApplicationRootPathBuildItem.routeBuilder()
                     .route(graphQLConfig.ui.rootPath)
                     .displayOnNotFoundPage("GraphQL UI")

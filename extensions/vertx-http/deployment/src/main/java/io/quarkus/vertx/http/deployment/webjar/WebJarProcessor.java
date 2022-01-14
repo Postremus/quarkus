@@ -3,6 +3,7 @@ package io.quarkus.vertx.http.deployment.webjar;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.maven.dependency.ResolvedDependency;
 import io.quarkus.runtime.ApplicationConfig;
+import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarRecorder;
 
 public class WebJarProcessor {
@@ -41,8 +43,19 @@ public class WebJarProcessor {
             Path staticResourcesPath = WebJarUtil.copyResourcesForDevOrTest(curateOutcomeBuildItem, applicationConfig, webJar,
                     dependency, resourcesDirectory);
 
+            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations = new ArrayList<>();
+            webRootConfigurations.add(
+                    new FileSystemStaticHandler.StaticWebRootConfiguration(staticResourcesPath.toAbsolutePath().toString(),
+                            ""));
+            for (Path resolvedPath : dependency.getResolvedPaths()) {
+                webRootConfigurations
+                        .add(new FileSystemStaticHandler.StaticWebRootConfiguration(resolvedPath.toString(),
+                                webJar.getRoot()));
+            }
+
             results.put(webJar.getArtifactKey(),
-                    new WebJarResultBuildItem.WebJarResult(dependency, staticResourcesPath.toAbsolutePath().toString()));
+                    new WebJarResultBuildItem.WebJarResult(dependency, staticResourcesPath.toAbsolutePath().toString(),
+                            webRootConfigurations));
         }
 
         return new WebJarResultBuildItem(results);
@@ -73,8 +86,13 @@ public class WebJarProcessor {
                 nativeImageResourceBuildItemBuildProducer.produce(new NativeImageResourceBuildItem(fileName));
             }
 
+            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations = new ArrayList<>();
+            webRootConfigurations.add(
+                    new FileSystemStaticHandler.StaticWebRootConfiguration(webJar.getFinalDestination(),
+                            ""));
+
             results.put(webJar.getArtifactKey(),
-                    new WebJarResultBuildItem.WebJarResult(dependency, webJar.getFinalDestination()));
+                    new WebJarResultBuildItem.WebJarResult(dependency, webJar.getFinalDestination(), webRootConfigurations));
         }
 
         return new WebJarResultBuildItem(results);

@@ -137,7 +137,7 @@ public class SwaggerUiProcessor {
             byte[] indexHtmlContent = generateIndexHtml(openApiPath, swaggerUiPath, swaggerUiConfig, indexRootPathBuildItem);
             webJarBuildProducer
                     .produce(new WebJarBuildItem(SWAGGER_UI_WEBJAR_ARTIFACT_KEY, SWAGGER_UI_WEBJAR_STATIC_RESOURCES_PATH,
-                            SWAGGER_UI_FINAL_DESTINATION, new WebJarResourcesFilter() {
+                            true, true, SWAGGER_UI_FINAL_DESTINATION, new WebJarResourcesFilter() {
                                 @Override
                                 public FilterResult apply(String fileName, InputStream file) throws IOException {
                                     if (!fileName.equals(theme.toString()) && fileName.startsWith("theme-")) {
@@ -173,7 +173,7 @@ public class SwaggerUiProcessor {
             swaggerUiBuildProducer.produce(new SwaggerUiBuildItem(result.getFinalDestination(), swaggerUiPath));
 
             Handler<RoutingContext> handler = recorder.handler(result.getFinalDestination(),
-                    swaggerUiPath,
+                    swaggerUiPath, result.getWebRootConfigurations(),
                     runtimeConfig);
 
             routes.produce(nonApplicationRootPathBuildItem.routeBuilder()

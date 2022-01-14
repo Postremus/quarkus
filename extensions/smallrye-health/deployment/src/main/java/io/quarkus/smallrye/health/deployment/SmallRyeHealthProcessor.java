@@ -419,7 +419,8 @@ class SmallRyeHealthProcessor {
             String healthPath = nonApplicationRootPathBuildItem.resolvePath(healthConfig.rootPath);
 
             webJarBuildProducer
-                    .produce(new WebJarBuildItem(HEALTH_UI_WEBJAR_ARTIFACT_KEY, HEALTH_UI_WEBJAR_STATIC_RESOURCES_PATH,
+                    .produce(new WebJarBuildItem(HEALTH_UI_WEBJAR_ARTIFACT_KEY, HEALTH_UI_WEBJAR_STATIC_RESOURCES_PATH, true,
+                            true,
                             HEALTH_UI_FINAL_DESTINATION, new WebJarResourcesFilter() {
                                 @Override
                                 public FilterResult apply(String fileName, InputStream file) throws IOException {
@@ -461,7 +462,7 @@ class SmallRyeHealthProcessor {
                     .produce(new SmallRyeHealthBuildItem(result.getFinalDestination(), healthUiPath));
 
             Handler<RoutingContext> handler = recorder.uiHandler(result.getFinalDestination(),
-                    healthUiPath, runtimeConfig);
+                    healthUiPath, result.getWebRootConfigurations(), runtimeConfig);
             routeProducer.produce(nonApplicationRootPathBuildItem.routeBuilder()
                     .route(healthConfig.ui.rootPath)
                     .displayOnNotFoundPage("Health UI")

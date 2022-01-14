@@ -1,11 +1,12 @@
 package io.quarkus.vertx.http.deployment.webjar;
 
-import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import io.quarkus.builder.item.SimpleBuildItem;
 import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.maven.dependency.ResolvedDependency;
+import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
 
 public final class WebJarResultBuildItem extends SimpleBuildItem {
     private final Map<ArtifactKey, WebJarResult> results;
@@ -22,17 +23,21 @@ public final class WebJarResultBuildItem extends SimpleBuildItem {
         /**
          * Resolved dependency of the webjar
          */
-        private ResolvedDependency dependency;
+        private final ResolvedDependency dependency;
 
         /**
          * Path to either the created directory on disk (dev and test), or the same value as
          * {@link WebJarBuildItem#getFinalDestination()} (prod mode)
          */
-        private String finalDestination;
+        private final String finalDestination;
 
-        public WebJarResult(ResolvedDependency dependency, String finalDestination) {
+        private final List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations;
+
+        public WebJarResult(ResolvedDependency dependency, String finalDestination,
+                List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations) {
             this.dependency = dependency;
             this.finalDestination = finalDestination;
+            this.webRootConfigurations = webRootConfigurations;
         }
 
         public ResolvedDependency getDependency() {
@@ -41,6 +46,10 @@ public final class WebJarResultBuildItem extends SimpleBuildItem {
 
         public String getFinalDestination() {
             return finalDestination;
+        }
+
+        public List<FileSystemStaticHandler.StaticWebRootConfiguration> getWebRootConfigurations() {
+            return webRootConfigurations;
         }
     }
 }
