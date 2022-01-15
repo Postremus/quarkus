@@ -462,7 +462,7 @@ class SmallRyeHealthProcessor {
                     .produce(new SmallRyeHealthBuildItem(result.getFinalDestination(), healthUiPath));
 
             Handler<RoutingContext> handler = recorder.uiHandler(result.getFinalDestination(),
-                    healthUiPath, result.getWebRootConfigurations(), runtimeConfig);
+                    healthUiPath, result.getFiles(), runtimeConfig);
             routeProducer.produce(nonApplicationRootPathBuildItem.routeBuilder()
                     .route(healthConfig.ui.rootPath)
                     .displayOnNotFoundPage("Health UI")

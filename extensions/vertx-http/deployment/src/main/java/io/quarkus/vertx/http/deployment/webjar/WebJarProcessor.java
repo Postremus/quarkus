@@ -40,22 +40,12 @@ public class WebJarProcessor {
             Path resourcesDirectory = deploymentBasePath.resolve(webJar.getFinalDestination());
             ResolvedDependency dependency = WebJarUtil.getAppArtifact(curateOutcomeBuildItem, webJar.getArtifactKey());
 
-            Path staticResourcesPath = WebJarUtil.copyResourcesForDevOrTest(curateOutcomeBuildItem, applicationConfig, webJar,
+            Map<String, byte[]> files = WebJarUtil.copyResourcesForDevOrTest(curateOutcomeBuildItem, applicationConfig, webJar,
                     dependency, resourcesDirectory);
 
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations = new ArrayList<>();
-            webRootConfigurations.add(
-                    new FileSystemStaticHandler.StaticWebRootConfiguration(staticResourcesPath.toAbsolutePath().toString(),
-                            ""));
-            for (Path resolvedPath : dependency.getResolvedPaths()) {
-                webRootConfigurations
-                        .add(new FileSystemStaticHandler.StaticWebRootConfiguration(resolvedPath.toString(),
-                                webJar.getRoot()));
-            }
-
             results.put(webJar.getArtifactKey(),
-                    new WebJarResultBuildItem.WebJarResult(dependency, staticResourcesPath.toAbsolutePath().toString(),
-                            webRootConfigurations));
+                    new WebJarResultBuildItem.WebJarResult(dependency, null,
+                            null, files));
         }
 
         return new WebJarResultBuildItem(results);
@@ -92,7 +82,8 @@ public class WebJarProcessor {
                             ""));
 
             results.put(webJar.getArtifactKey(),
-                    new WebJarResultBuildItem.WebJarResult(dependency, webJar.getFinalDestination(), webRootConfigurations));
+                    new WebJarResultBuildItem.WebJarResult(dependency, webJar.getFinalDestination(), webRootConfigurations,
+                            files));
         }
 
         return new WebJarResultBuildItem(results);

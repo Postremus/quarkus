@@ -37,18 +37,17 @@ public class WebJarUtil {
     private WebJarUtil() {
     }
 
-    static Path copyResourcesForDevOrTest(CurateOutcomeBuildItem curateOutcomeBuildItem, ApplicationConfig config,
+    static Map<String, byte[]> copyResourcesForDevOrTest(CurateOutcomeBuildItem curateOutcomeBuildItem,
+            ApplicationConfig config,
             WebJarBuildItem webJar,
             ResolvedDependency resourcesArtifact,
             Path deploymentBasePath)
             throws IOException {
 
-        Path deploymentPath = Files.createDirectories(deploymentBasePath);
-
-        PathTargetVisitor visitor = new PathTargetVisitor(deploymentPath);
+        InMemoryTargetVisitor visitor = new InMemoryTargetVisitor();
         copyResources(curateOutcomeBuildItem, config, webJar, resourcesArtifact, visitor);
 
-        return deploymentPath;
+        return visitor.getContent();
     }
 
     static Map<String, byte[]> copyResourcesForProduction(CurateOutcomeBuildItem curateOutcomeBuildItem,

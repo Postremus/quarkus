@@ -173,7 +173,7 @@ public class SwaggerUiProcessor {
             swaggerUiBuildProducer.produce(new SwaggerUiBuildItem(result.getFinalDestination(), swaggerUiPath));
 
             Handler<RoutingContext> handler = recorder.handler(result.getFinalDestination(),
-                    swaggerUiPath, result.getWebRootConfigurations(),
+                    swaggerUiPath, result.getFiles(),
                     runtimeConfig);
 
             routes.produce(nonApplicationRootPathBuildItem.routeBuilder()

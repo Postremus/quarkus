@@ -33,11 +33,14 @@ public final class WebJarResultBuildItem extends SimpleBuildItem {
 
         private final List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations;
 
+        private final Map<String, byte[]> files;
+
         public WebJarResult(ResolvedDependency dependency, String finalDestination,
-                List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations) {
+                List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations, Map<String, byte[]> files) {
             this.dependency = dependency;
             this.finalDestination = finalDestination;
             this.webRootConfigurations = webRootConfigurations;
+            this.files = files;
         }
 
         public ResolvedDependency getDependency() {
@@ -50,6 +53,10 @@ public final class WebJarResultBuildItem extends SimpleBuildItem {
 
         public List<FileSystemStaticHandler.StaticWebRootConfiguration> getWebRootConfigurations() {
             return webRootConfigurations;
+        }
+
+        public Map<String, byte[]> getFiles() {
+            return files;
         }
     }
 }

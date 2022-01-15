@@ -586,7 +586,7 @@ public class SmallRyeGraphQLProcessor {
                     .produce(new SmallRyeGraphQLBuildItem(result.getFinalDestination(), graphQLUiPath));
 
             Handler<RoutingContext> handler = recorder.uiHandler(result.getFinalDestination(),
-                    graphQLUiPath, result.getWebRootConfigurations(), runtimeConfig);
+                    graphQLUiPath, result.getFiles(), runtimeConfig);
             routeProducer.produce(nonApplicationRootPathBuildItem.routeBuilder()
                     .route(graphQLConfig.ui.rootPath)
                     .displayOnNotFoundPage("GraphQL UI")

@@ -1,6 +1,6 @@
 package io.quarkus.smallrye.graphql.runtime;
 
-import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import javax.enterprise.inject.Instance;
@@ -14,7 +14,6 @@ import io.quarkus.runtime.annotations.Recorder;
 import io.quarkus.security.identity.CurrentIdentityAssociation;
 import io.quarkus.smallrye.graphql.runtime.spi.QuarkusClassloadingService;
 import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
-import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarNotFoundHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarStaticHandler;
 import io.smallrye.graphql.cdi.producer.GraphQLProducer;
@@ -56,11 +55,11 @@ public class SmallRyeGraphQLRecorder {
     }
 
     public Handler<RoutingContext> uiHandler(String graphqlUiFinalDestination,
-            String graphqlUiPath, List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations,
+            String graphqlUiPath, Map<String, byte[]> files,
             SmallRyeGraphQLRuntimeConfig runtimeConfig) {
 
         if (runtimeConfig.enable) {
-            return new WebJarStaticHandler(graphqlUiFinalDestination, graphqlUiPath, webRootConfigurations);
+            return new WebJarStaticHandler(graphqlUiFinalDestination, graphqlUiPath, files);
         } else {
             return new WebJarNotFoundHandler();
         }

@@ -1,9 +1,8 @@
 package io.quarkus.vertx.http.runtime.webjar;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Map;
 
-import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
+import io.quarkus.vertx.http.runtime.devmode.InMemoryStaticHandler;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
@@ -13,16 +12,16 @@ public class WebJarStaticHandler implements Handler<RoutingContext> {
     private String finalDestination;
     private String path;
 
-    private List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations;
+    private Map<String, byte[]> files;
 
     public WebJarStaticHandler() {
     }
 
     public WebJarStaticHandler(String finalDestination, String path,
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations) {
+            Map<String, byte[]> files) {
         this.finalDestination = finalDestination;
         this.path = path;
-        this.webRootConfigurations = webRootConfigurations;
+        this.files = files;
     }
 
     public String getFinalDestination() {
@@ -41,12 +40,12 @@ public class WebJarStaticHandler implements Handler<RoutingContext> {
         this.path = path;
     }
 
-    public List<FileSystemStaticHandler.StaticWebRootConfiguration> getWebRootConfigurations() {
-        return webRootConfigurations;
+    public Map<String, byte[]> getFiles() {
+        return files;
     }
 
-    public void setWebRootConfigurations(List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations) {
-        this.webRootConfigurations = webRootConfigurations;
+    public void setFiles(Map<String, byte[]> files) {
+        this.files = files;
     }
 
     @Override
@@ -62,14 +61,9 @@ public class WebJarStaticHandler implements Handler<RoutingContext> {
             return;
         }
 
-        if (!finalDestination.startsWith("META-INF")) {
-            FileSystemStaticHandler handler = new FileSystemStaticHandler(webRootConfigurations);
+        if (finalDestination == null) {
+            InMemoryStaticHandler handler = new InMemoryStaticHandler(files);
             handler.handle(event);
-            try {
-                handler.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         } else {
             StaticHandler staticHandler = StaticHandler.create().setAllowRootFileSystemAccess(true)
                     .setWebRoot(finalDestination)

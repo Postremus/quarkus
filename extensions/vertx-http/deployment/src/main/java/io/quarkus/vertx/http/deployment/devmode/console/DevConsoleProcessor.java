@@ -413,8 +413,7 @@ public class DevConsoleProcessor {
 
         routeBuildItemBuildProducer.produce(nonApplicationRootPathBuildItem.routeBuilder()
                 .route("dev/resources/*")
-                .handler(recorder.fileSystemStaticHandler(
-                        result.getWebRootConfigurations(), shutdownContext))
+                .handler(recorder.fileSystemStaticHandler(result.getFiles()))
                 .build());
 
         // Add the log stream

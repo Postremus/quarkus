@@ -1,8 +1,6 @@
 package io.quarkus.vertx.http.runtime.devmode;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -43,32 +41,10 @@ public class DevConsoleRecorder {
         });
     }
 
-    /**
-     *
-     * @param devConsoleFinalDestination
-     * @param shutdownContext
-     * @return
-     * @deprecated use {@link #fileSystemStaticHandler(List, ShutdownContext)}
-     */
-    @Deprecated
-    public Handler<RoutingContext> devConsoleHandler(String devConsoleFinalDestination,
-            ShutdownContext shutdownContext) {
-        List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations = new ArrayList<>();
-        webRootConfigurations.add(
-                new FileSystemStaticHandler.StaticWebRootConfiguration(devConsoleFinalDestination, ""));
-
-        return fileSystemStaticHandler(webRootConfigurations, shutdownContext);
-    }
-
     public Handler<RoutingContext> fileSystemStaticHandler(
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations,
-            ShutdownContext shutdownContext) {
+            Map<String, byte[]> files) {
 
-        FileSystemStaticHandler fileSystemStaticHandler = new FileSystemStaticHandler(webRootConfigurations);
-
-        shutdownContext.addShutdownTask(new ShutdownContext.CloseRunnable(fileSystemStaticHandler));
-
-        return fileSystemStaticHandler;
+        return new InMemoryStaticHandler(files);
     }
 
     public Handler<RoutingContext> continuousTestHandler(ShutdownContext context) {

@@ -1,9 +1,8 @@
 package io.quarkus.swaggerui.runtime;
 
-import java.util.List;
+import java.util.Map;
 
 import io.quarkus.runtime.annotations.Recorder;
-import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarNotFoundHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarStaticHandler;
 import io.vertx.core.Handler;
@@ -13,11 +12,11 @@ import io.vertx.ext.web.RoutingContext;
 public class SwaggerUiRecorder {
 
     public Handler<RoutingContext> handler(String swaggerUiFinalDestination, String swaggerUiPath,
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations,
+            Map<String, byte[]> files,
             SwaggerUiRuntimeConfig runtimeConfig) {
 
         if (runtimeConfig.enable) {
-            return new WebJarStaticHandler(swaggerUiFinalDestination, swaggerUiPath, webRootConfigurations);
+            return new WebJarStaticHandler(swaggerUiFinalDestination, swaggerUiPath, files);
         } else {
             return new WebJarNotFoundHandler();
         }

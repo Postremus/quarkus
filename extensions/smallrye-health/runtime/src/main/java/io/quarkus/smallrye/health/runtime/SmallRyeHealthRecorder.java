@@ -1,12 +1,11 @@
 package io.quarkus.smallrye.health.runtime;
 
-import java.util.List;
+import java.util.Map;
 
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.spi.HealthCheckResponseProvider;
 
 import io.quarkus.runtime.annotations.Recorder;
-import io.quarkus.vertx.http.runtime.devmode.FileSystemStaticHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarNotFoundHandler;
 import io.quarkus.vertx.http.runtime.webjar.WebJarStaticHandler;
 import io.vertx.core.Handler;
@@ -25,11 +24,11 @@ public class SmallRyeHealthRecorder {
     }
 
     public Handler<RoutingContext> uiHandler(String healthUiFinalDestination, String healthUiPath,
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations,
+            Map<String, byte[]> files,
             SmallRyeHealthRuntimeConfig runtimeConfig) {
 
         if (runtimeConfig.enable) {
-            return new WebJarStaticHandler(healthUiFinalDestination, healthUiPath, webRootConfigurations);
+            return new WebJarStaticHandler(healthUiFinalDestination, healthUiPath, files);
         } else {
             return new WebJarNotFoundHandler();
         }
