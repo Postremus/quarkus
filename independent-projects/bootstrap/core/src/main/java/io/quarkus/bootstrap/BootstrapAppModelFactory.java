@@ -45,6 +45,7 @@ import java.util.Set;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.jboss.logging.Logger;
+import org.nustaq.serialization.FSTObjectInput;
 
 /**
  * The factory that creates the application dependency model.
@@ -237,9 +238,10 @@ public class BootstrapAppModelFactory {
             final Path p = Paths.get(serializedModel);
             if (Files.exists(p)) {
                 try (InputStream existing = Files.newInputStream(Paths.get(serializedModel))) {
-                    final ApplicationModel appModel = (ApplicationModel) new ObjectInputStream(existing).readObject();
+                    final ApplicationModel appModel = (ApplicationModel) new FSTObjectInput(existing)
+                            .readObject(ApplicationModel.class);
                     return new CurationResult(appModel);
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (Exception e) {
                     log.error("Failed to load serialized app mode", e);
                 }
                 IoUtils.recursiveDelete(p);
