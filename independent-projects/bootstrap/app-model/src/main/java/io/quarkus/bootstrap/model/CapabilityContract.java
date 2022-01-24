@@ -1,11 +1,20 @@
 package io.quarkus.bootstrap.model;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class CapabilityContract implements ExtensionCapabilities, Serializable {
+public class CapabilityContract implements ExtensionCapabilities, Externalizable, Serializable {
+
+    private static final long serialVersionUID = 8907253464219761821L;
+
+    public CapabilityContract() {
+    }
 
     public static CapabilityContract providesCapabilities(String extension, String commaSeparatedList) {
         final List<String> list = Arrays.asList(commaSeparatedList.split("\\s*,\\s*"));
@@ -18,8 +27,8 @@ public class CapabilityContract implements ExtensionCapabilities, Serializable {
         return new CapabilityContract(extension, list);
     }
 
-    private final String extension;
-    private final List<String> providesCapabilities;
+    private String extension;
+    private List<String> providesCapabilities;
 
     public CapabilityContract(String extension, List<String> providesCapabilities) {
         this.extension = Objects.requireNonNull(extension, "extension can't be null");
@@ -34,5 +43,31 @@ public class CapabilityContract implements ExtensionCapabilities, Serializable {
     @Override
     public List<String> getProvidesCapabilities() {
         return providesCapabilities;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            extension = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            providesCapabilities = (List<String>) in.readObject();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (extension == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(extension);
+        }
+        if (providesCapabilities == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(providesCapabilities);
+        }
     }
 }

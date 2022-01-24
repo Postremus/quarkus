@@ -1,6 +1,10 @@
 package io.quarkus.deployment.dev;
 
+import java.io.Externalizable;
 import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.net.URL;
 import java.nio.file.Path;
@@ -25,19 +29,21 @@ import io.quarkus.paths.PathList;
  *
  * There is no need to worry about compat as both sides will always be using the same version
  */
-public class DevModeContext implements Serializable {
+public class DevModeContext implements Externalizable {
 
     public static final CompilationUnit EMPTY_COMPILATION_UNIT = new CompilationUnit(PathList.of(), null, null, null);
 
     public static final String ENABLE_PREVIEW_FLAG = "--enable-preview";
 
+    private static final long serialVersionUID = 9020101669614103954L;
+
     private ModuleInfo applicationRoot;
-    private final List<ModuleInfo> additionalModules = new ArrayList<>();
-    private final Map<String, String> systemProperties = new HashMap<>();
-    private final Map<String, String> buildSystemProperties = new HashMap<>();
+    private List<ModuleInfo> additionalModules = new ArrayList<>();
+    private Map<String, String> systemProperties = new HashMap<>();
+    private Map<String, String> buildSystemProperties = new HashMap<>();
     private String sourceEncoding;
 
-    private final List<URL> additionalClassPathElements = new ArrayList<>();
+    private List<URL> additionalClassPathElements = new ArrayList<>();
     private File cacheDir;
     private File projectDir;
     private boolean test;
@@ -59,7 +65,10 @@ public class DevModeContext implements Serializable {
     private String alternateEntryPoint;
     private QuarkusBootstrap.Mode mode = QuarkusBootstrap.Mode.DEV;
     private String baseName;
-    private final Set<ArtifactKey> localArtifacts = new HashSet<>();
+    private Set<ArtifactKey> localArtifacts = new HashSet<>();
+
+    public DevModeContext() {
+    }
 
     public boolean isLocalProjectDiscovery() {
         return localProjectDiscovery;
@@ -236,17 +245,213 @@ public class DevModeContext implements Serializable {
         return localArtifacts;
     }
 
-    public static class ModuleInfo implements Serializable {
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            applicationRoot = (ModuleInfo) in.readObject();
+        }
+        if (in.readBoolean()) {
+            additionalModules = (List<ModuleInfo>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            systemProperties = (Map<String, String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            buildSystemProperties = (Map<String, String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            sourceEncoding = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            additionalClassPathElements = (List<URL>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            cacheDir = (File) in.readObject();
+        }
+        if (in.readBoolean()) {
+            projectDir = (File) in.readObject();
+        }
+        test = in.readBoolean();
+        abortOnFailedStart = in.readBoolean();
+        if (in.readBoolean()) {
+            devModeRunnerJarFile = (File) in.readObject();
+        }
+        localProjectDiscovery = in.readBoolean();
+        if (in.readBoolean()) {
+            args = (String[]) in.readObject();
+        }
+        if (in.readBoolean()) {
+            compilerOptions = (List<String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            releaseJavaVersion = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            sourceJavaVersion = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            targetJvmVersion = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            compilerPluginArtifacts = (List<String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            compilerPluginsOptions = (List<String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            alternateEntryPoint = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            mode = QuarkusBootstrap.Mode.values()[in.readShort()];
+        }
+        if (in.readBoolean()) {
+            baseName = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            localArtifacts = (Set<ArtifactKey>) in.readObject();
+        }
+    }
 
-        private final ArtifactKey appArtifactKey;
-        private final String name;
-        private final String projectDirectory;
-        private final CompilationUnit main;
-        private final CompilationUnit test;
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (applicationRoot == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(applicationRoot);
+        }
+        if (additionalModules == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(additionalModules);
+        }
+        if (systemProperties == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(systemProperties);
+        }
+        if (buildSystemProperties == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(buildSystemProperties);
+        }
+        if (sourceEncoding == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(sourceEncoding);
+        }
+        if (additionalClassPathElements == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(additionalClassPathElements);
+        }
+        if (cacheDir == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(cacheDir);
+        }
+        if (projectDir == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(projectDir);
+        }
+        out.writeBoolean(test);
+        out.writeBoolean(abortOnFailedStart);
+        if (devModeRunnerJarFile == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(devModeRunnerJarFile);
+        }
+        out.writeBoolean(localProjectDiscovery);
+        if (args == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(args);
+        }
+        if (compilerOptions == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(compilerOptions);
+        }
+        if (releaseJavaVersion == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(releaseJavaVersion);
+        }
+        if (sourceJavaVersion == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(sourceJavaVersion);
+        }
+        if (targetJvmVersion == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(targetJvmVersion);
+        }
+        if (compilerPluginArtifacts == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(compilerPluginArtifacts);
+        }
+        if (compilerPluginsOptions == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(compilerPluginsOptions);
+        }
+        if (alternateEntryPoint == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(alternateEntryPoint);
+        }
+        if (mode == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeShort((short) mode.ordinal());
+        }
+        if (baseName == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(baseName);
+        }
+        if (localArtifacts == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(localArtifacts);
+        }
+    }
 
-        private final String preBuildOutputDir;
-        private final PathCollection sourceParents;
-        private final String targetDir;
+    public static class ModuleInfo implements Externalizable, Serializable {
+
+        private static final long serialVersionUID = 7811355178873828181L;
+
+        private ArtifactKey appArtifactKey;
+        private String name;
+        private String projectDirectory;
+        private CompilationUnit main;
+        private CompilationUnit test;
+
+        private String preBuildOutputDir;
+        private PathCollection sourceParents;
+        private String targetDir;
 
         ModuleInfo(Builder builder) {
             this.appArtifactKey = builder.appArtifactKey;
@@ -265,6 +470,9 @@ public class DevModeContext implements Serializable {
             this.sourceParents = builder.sourceParents;
             this.preBuildOutputDir = builder.preBuildOutputDir;
             this.targetDir = builder.targetDir;
+        }
+
+        public ModuleInfo() {
         }
 
         public String getName() {
@@ -306,6 +514,86 @@ public class DevModeContext implements Serializable {
 
         public Optional<CompilationUnit> getTest() {
             return Optional.ofNullable(test);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            if (in.readBoolean()) {
+                appArtifactKey = (ArtifactKey) in.readObject();
+            }
+            if (in.readBoolean()) {
+                name = in.readUTF();
+            }
+            if (in.readBoolean()) {
+                projectDirectory = in.readUTF();
+            }
+            if (in.readBoolean()) {
+                main = (CompilationUnit) in.readObject();
+            }
+            if (in.readBoolean()) {
+                test = (CompilationUnit) in.readObject();
+            }
+            if (in.readBoolean()) {
+                preBuildOutputDir = in.readUTF();
+            }
+            if (in.readBoolean()) {
+                sourceParents = (PathCollection) in.readObject();
+            }
+            if (in.readBoolean()) {
+                targetDir = in.readUTF();
+            }
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            if (appArtifactKey == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(appArtifactKey);
+            }
+            if (name == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(name);
+            }
+            if (projectDirectory == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(projectDirectory);
+            }
+            if (main == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(main);
+            }
+            if (test == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(test);
+            }
+            if (preBuildOutputDir == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(preBuildOutputDir);
+            }
+            if (sourceParents == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(sourceParents);
+            }
+            if (targetDir == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(targetDir);
+            }
         }
 
         public static class Builder {
@@ -403,11 +691,14 @@ public class DevModeContext implements Serializable {
         }
     }
 
-    public static class CompilationUnit implements Serializable {
+    public static class CompilationUnit implements Externalizable, Serializable {
+
+        private static final long serialVersionUID = -2376878905527960968L;
+
         private PathCollection sourcePaths;
-        private final String classesPath;
-        private final PathCollection resourcePaths;
-        private final String resourcesOutputPath;
+        private String classesPath;
+        private PathCollection resourcePaths;
+        private String resourcesOutputPath;
 
         public CompilationUnit(PathCollection sourcePaths, String classesPath, PathCollection resourcePaths,
                 String resourcesOutputPath) {
@@ -415,6 +706,9 @@ public class DevModeContext implements Serializable {
             this.classesPath = classesPath;
             this.resourcePaths = resourcePaths;
             this.resourcesOutputPath = resourcesOutputPath;
+        }
+
+        public CompilationUnit() {
         }
 
         public PathCollection getSourcePaths() {
@@ -431,6 +725,50 @@ public class DevModeContext implements Serializable {
 
         public String getResourcesOutputPath() {
             return resourcesOutputPath;
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            if (in.readBoolean()) {
+                sourcePaths = (PathCollection) in.readObject();
+            }
+            if (in.readBoolean()) {
+                classesPath = in.readUTF();
+            }
+            if (in.readBoolean()) {
+                resourcePaths = (PathCollection) in.readObject();
+            }
+            if (in.readBoolean()) {
+                resourcesOutputPath = in.readUTF();
+            }
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            if (sourcePaths == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(sourcePaths);
+            }
+            if (classesPath == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(classesPath);
+            }
+            if (resourcePaths == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeObject(resourcePaths);
+            }
+            if (resourcesOutputPath == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeUTF(resourcesOutputPath);
+            }
         }
     }
 

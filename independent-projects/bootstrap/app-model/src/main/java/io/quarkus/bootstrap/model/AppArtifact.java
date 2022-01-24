@@ -4,6 +4,10 @@ import io.quarkus.bootstrap.workspace.WorkspaceModule;
 import io.quarkus.maven.dependency.ResolvedDependency;
 import io.quarkus.paths.PathCollection;
 import io.quarkus.paths.PathList;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.nio.file.Path;
 
@@ -12,12 +16,18 @@ import java.nio.file.Path;
  *
  * @author Alexey Loubyansky
  */
-public class AppArtifact extends AppArtifactCoords implements ResolvedDependency, Serializable {
+public class AppArtifact extends AppArtifactCoords implements ResolvedDependency, Externalizable, Serializable {
+
+    private static final long serialVersionUID = 6682808792085122539L;
 
     protected PathsCollection paths;
-    private final WorkspaceModule module;
-    private final String scope;
-    private final int flags;
+    private WorkspaceModule module;
+    private String scope;
+    private int flags;
+
+    public AppArtifact() {
+
+    }
 
     public AppArtifact(AppArtifactCoords coords) {
         this(coords, null);
@@ -117,5 +127,42 @@ public class AppArtifact extends AppArtifactCoords implements ResolvedDependency
     @Override
     public int getFlags() {
         return flags;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            paths = (PathsCollection) in.readObject();
+        }
+        if (in.readBoolean()) {
+            module = (WorkspaceModule) in.readObject();
+        }
+        if (in.readBoolean()) {
+            scope = in.readUTF();
+        }
+        flags = in.readInt();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (paths == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(paths);
+        }
+        if (module == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(module);
+        }
+        if (scope == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(scope);
+        }
+        out.writeInt(flags);
     }
 }

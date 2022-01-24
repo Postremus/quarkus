@@ -1,9 +1,18 @@
 package io.quarkus.maven.dependency;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class GACT implements ArtifactKey, Serializable {
+public class GACT implements ArtifactKey, Externalizable, Serializable {
+
+    private static final long serialVersionUID = 6027779066485212224L;
+
+    public GACT() {
+    }
 
     public static GACT fromString(String str) {
         return new GACT(split(str, new String[4], str.length()));
@@ -61,10 +70,10 @@ public class GACT implements ArtifactKey, Serializable {
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
 
     public GACT(String[] parts) {
         this.groupId = parts[0];
@@ -147,5 +156,49 @@ public class GACT implements ArtifactKey, Serializable {
             buf.append(':').append(type);
         }
         return buf.toString();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            groupId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            artifactId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            classifier = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            type = in.readUTF();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (groupId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(groupId);
+        }
+        if (artifactId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(artifactId);
+        }
+        if (classifier == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(classifier);
+        }
+        if (type == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(type);
+        }
     }
 }

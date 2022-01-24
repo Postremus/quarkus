@@ -5,8 +5,11 @@ import io.quarkus.bootstrap.resolver.AppModelResolverException;
 import io.quarkus.maven.dependency.ArtifactCoords;
 import io.quarkus.maven.dependency.GACTV;
 import java.io.BufferedWriter;
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.nio.file.Files;
@@ -18,7 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-public class PlatformImportsImpl implements PlatformImports, Serializable {
+public class PlatformImportsImpl implements PlatformImports, Externalizable, Serializable {
+
+    private static final long serialVersionUID = -2139240360282686212L;
 
     public static final String PROPERTY_PREFIX = "platform.release-info@";
 
@@ -38,15 +43,15 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
     }
 
     // metadata for each found platform release by platform key
-    private final Map<String, PlatformInfo> allPlatformInfo = new HashMap<>();
+    private Map<String, PlatformInfo> allPlatformInfo = new HashMap<>();
     // imported platform BOMs by platform keys (groupId)
-    private final Map<String, Collection<ArtifactCoords>> importedPlatformBoms = new HashMap<>();
+    private Map<String, Collection<ArtifactCoords>> importedPlatformBoms = new HashMap<>();
 
-    private final Map<ArtifactCoords, PlatformImport> platformImports = new HashMap<>();
+    private Map<ArtifactCoords, PlatformImport> platformImports = new HashMap<>();
 
-    final Map<String, String> collectedProps = new HashMap<String, String>();
-    private final Collection<ArtifactCoords> platformBoms = new ArrayList<>();
-    private final Collection<PlatformReleaseInfo> platformReleaseInfo = new ArrayList<>();
+    Map<String, String> collectedProps = new HashMap<>();
+    private Collection<ArtifactCoords> platformBoms = new ArrayList<>();
+    private Collection<PlatformReleaseInfo> platformReleaseInfo = new ArrayList<>();
 
     public PlatformImportsImpl() {
     }
@@ -211,7 +216,72 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
         return allPlatformInfo.get(platformKey);
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            allPlatformInfo = (Map<String, PlatformInfo>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            importedPlatformBoms = (Map<String, Collection<ArtifactCoords>>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            platformImports = (Map<ArtifactCoords, PlatformImport>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            collectedProps = (Map<String, String>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            platformBoms = (Collection<ArtifactCoords>) in.readObject();
+        }
+        if (in.readBoolean()) {
+            platformReleaseInfo = (Collection<PlatformReleaseInfo>) in.readObject();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (allPlatformInfo == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(allPlatformInfo);
+        }
+        if (importedPlatformBoms == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(importedPlatformBoms);
+        }
+        if (platformImports == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(platformImports);
+        }
+        if (collectedProps == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(collectedProps);
+        }
+        if (platformBoms == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(platformBoms);
+        }
+        if (platformReleaseInfo == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(platformReleaseInfo);
+        }
+    }
+
     private static class PlatformImport implements Serializable {
+
+        private static final long serialVersionUID = -1108789516966507422L;
+
         boolean descriptorFound;
     }
 }

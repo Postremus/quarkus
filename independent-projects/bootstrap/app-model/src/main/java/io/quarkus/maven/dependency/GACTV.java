@@ -1,9 +1,18 @@
 package io.quarkus.maven.dependency;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class GACTV implements ArtifactCoords, Serializable {
+public class GACTV implements ArtifactCoords, Externalizable, Serializable {
+
+    private static final long serialVersionUID = 8143520269341430818L;
+
+    public GACTV() {
+    }
 
     public static GACTV fromString(String str) {
         return new GACTV(split(str, new String[5]));
@@ -23,11 +32,11 @@ public class GACTV implements ArtifactCoords, Serializable {
         return parts;
     }
 
-    private final String groupId;
-    private final String artifactId;
-    private final String classifier;
-    private final String type;
-    private final String version;
+    private String groupId;
+    private String artifactId;
+    private String classifier;
+    private String type;
+    private String version;
 
     private transient ArtifactKey key;
 
@@ -127,5 +136,58 @@ public class GACTV implements ArtifactCoords, Serializable {
             buf.append(classifier);
         }
         return buf.append(':').append(type).append(':').append(version);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            groupId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            artifactId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            classifier = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            type = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            version = in.readUTF();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (groupId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(groupId);
+        }
+        if (artifactId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(artifactId);
+        }
+        if (classifier == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(classifier);
+        }
+        if (type == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(type);
+        }
+        if (version == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(version);
+        }
     }
 }

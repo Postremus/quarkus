@@ -4,13 +4,19 @@ import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.maven.dependency.DependencyFlags;
 import io.quarkus.maven.dependency.ResolvedDependency;
 import io.quarkus.paths.PathCollection;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class AppDependency implements ResolvedDependency, Serializable {
+public class AppDependency implements ResolvedDependency, Externalizable, Serializable {
 
-    private final AppArtifact artifact;
-    private final String scope;
+    private static final long serialVersionUID = 1448772794680453517L;
+
+    private AppArtifact artifact;
+    private String scope;
     private int flags;
 
     public AppDependency(AppArtifact artifact, String scope, int... flags) {
@@ -122,5 +128,34 @@ public class AppDependency implements ResolvedDependency, Serializable {
     @Override
     public PathCollection getResolvedPaths() {
         return artifact.getResolvedPaths();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            artifact = new AppArtifact();
+            artifact.readExternal(in);
+        }
+        if (in.readBoolean()) {
+            scope = in.readUTF();
+        }
+        flags = in.readInt();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (artifact == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            artifact.writeExternal(out);
+        }
+        if (scope == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(scope);
+        }
+        out.writeInt(flags);
     }
 }

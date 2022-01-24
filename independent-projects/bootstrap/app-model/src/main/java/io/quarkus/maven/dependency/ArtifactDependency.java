@@ -1,15 +1,25 @@
 package io.quarkus.maven.dependency;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class ArtifactDependency extends GACTV implements Dependency, Serializable {
+public class ArtifactDependency extends GACTV implements Dependency, Externalizable, Serializable {
+
+    private static final long serialVersionUID = -4912687109952108603L;
+
+    public ArtifactDependency() {
+
+    }
 
     public static ArtifactDependency of(String groupId, String artifactId, String version) {
         return new ArtifactDependency(groupId, artifactId, null, ArtifactCoords.TYPE_JAR, version);
     }
 
-    private final String scope;
+    private String scope;
     private int flags;
 
     public ArtifactDependency(String groupId, String artifactId, String classifier, String type, String version) {
@@ -95,5 +105,26 @@ public class ArtifactDependency extends GACTV implements Dependency, Serializabl
     @Override
     public String toString() {
         return "[" + toGACTVString() + " " + scope + " " + flags + "]";
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        if (in.readBoolean()) {
+            scope = in.readUTF();
+        }
+        flags = in.readInt();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        if (scope == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(scope);
+        }
+        out.writeInt(flags);
     }
 }

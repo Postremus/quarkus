@@ -6,6 +6,8 @@ import java.util.Objects;
 
 public class DefaultArtifactSources implements ArtifactSources, Serializable {
 
+    private static final long serialVersionUID = 7674957724278168829L;
+
     private final String classifier;
     private final Collection<SourceDir> sources;
     private final Collection<SourceDir> resources;

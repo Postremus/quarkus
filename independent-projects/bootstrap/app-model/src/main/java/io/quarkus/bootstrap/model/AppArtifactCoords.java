@@ -3,6 +3,10 @@ package io.quarkus.bootstrap.model;
 import static java.util.Objects.requireNonNull;
 
 import io.quarkus.maven.dependency.ArtifactCoords;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -11,10 +15,15 @@ import java.util.Objects;
  *
  * @author Alexey Loubyansky
  */
-public class AppArtifactCoords implements ArtifactCoords, Serializable {
+public class AppArtifactCoords implements ArtifactCoords, Externalizable, Serializable {
+
+    private static final long serialVersionUID = 3496560470612902844L;
 
     public static final String TYPE_JAR = "jar";
     public static final String TYPE_POM = "pom";
+
+    public AppArtifactCoords() {
+    }
 
     public static AppArtifactCoords fromString(String str) {
         return new AppArtifactCoords(split(str, new String[5]));
@@ -40,11 +49,11 @@ public class AppArtifactCoords implements ArtifactCoords, Serializable {
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
-    protected final String version;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
+    protected String version;
 
     protected transient AppArtifactKey key;
 
@@ -139,5 +148,58 @@ public class AppArtifactCoords implements ArtifactCoords, Serializable {
             buf.append(classifier);
         }
         return buf.append(':').append(type).append(':').append(version);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean()) {
+            groupId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            artifactId = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            classifier = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            type = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            version = in.readUTF();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        if (groupId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(groupId);
+        }
+        if (artifactId == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(artifactId);
+        }
+        if (classifier == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(classifier);
+        }
+        if (type == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(type);
+        }
+        if (version == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeUTF(version);
+        }
     }
 }

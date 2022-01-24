@@ -4,15 +4,26 @@ import io.quarkus.bootstrap.workspace.WorkspaceModule;
 import io.quarkus.paths.PathCollection;
 import io.quarkus.paths.PathList;
 import io.quarkus.paths.PathTree;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class ResolvedArtifactDependency extends ArtifactDependency implements ResolvableDependency, Serializable {
+public class ResolvedArtifactDependency extends ArtifactDependency
+        implements ResolvableDependency, Externalizable, Serializable {
+
+    private static final long serialVersionUID = -2810281769445451188L;
 
     private PathCollection paths;
     private WorkspaceModule module;
     private volatile transient PathTree contentTree;
+
+    public ResolvedArtifactDependency() {
+
+    }
 
     public ResolvedArtifactDependency(ArtifactCoords coords) {
         this(coords, (PathCollection) null);
@@ -91,5 +102,33 @@ public class ResolvedArtifactDependency extends ArtifactDependency implements Re
             buf.append(" " + module);
         }
         return buf.toString();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        if (in.readBoolean()) {
+            paths = (PathCollection) in.readObject();
+        }
+        if (in.readBoolean()) {
+            module = (WorkspaceModule) in.readObject();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        if (paths == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(paths);
+        }
+        if (module == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeObject(module);
+        }
     }
 }
