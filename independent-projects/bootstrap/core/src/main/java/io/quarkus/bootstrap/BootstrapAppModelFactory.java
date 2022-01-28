@@ -2,6 +2,8 @@ package io.quarkus.bootstrap;
 
 import io.quarkus.bootstrap.app.CurationResult;
 import io.quarkus.bootstrap.model.ApplicationModel;
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.DefaultApplicationModel;
 import io.quarkus.bootstrap.resolver.AppModelResolver;
 import io.quarkus.bootstrap.resolver.AppModelResolverException;
 import io.quarkus.bootstrap.resolver.BootstrapAppModelResolver;
@@ -25,12 +27,9 @@ import io.quarkus.maven.dependency.DependencyFlags;
 import io.quarkus.maven.dependency.GACTV;
 import io.quarkus.maven.dependency.ResolvedArtifactDependency;
 import io.quarkus.maven.dependency.ResolvedDependency;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -236,10 +235,11 @@ public class BootstrapAppModelFactory {
         if (serializedModel != null) {
             final Path p = Paths.get(serializedModel);
             if (Files.exists(p)) {
-                try (InputStream existing = Files.newInputStream(Paths.get(serializedModel))) {
-                    final ApplicationModel appModel = (ApplicationModel) new ObjectInputStream(existing).readObject();
+                try {
+                    byte[] bytes = Files.readAllBytes(Paths.get(serializedModel));
+                    final ApplicationModel appModel = DefaultApplicationModel.deserialize(ByteBuffer.wrap(bytes));
                     return new CurationResult(appModel);
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (IOException e) {
                     log.error("Failed to load serialized app mode", e);
                 }
                 IoUtils.recursiveDelete(p);
@@ -282,31 +282,27 @@ public class BootstrapAppModelFactory {
                 cachedCpPath = resolveCachedCpPath(localProject);
                 if (Files.exists(cachedCpPath)
                         && workspace.getLastModified() < Files.getLastModifiedTime(cachedCpPath).toMillis()) {
-                    try (DataInputStream reader = new DataInputStream(Files.newInputStream(cachedCpPath))) {
-                        if (reader.readInt() == CP_CACHE_FORMAT_ID) {
-                            if (reader.readInt() == workspace.getId()) {
-                                ObjectInputStream in = new ObjectInputStream(reader);
-                                ApplicationModel appModel = (ApplicationModel) in.readObject();
+                    byte[] bytes = Files.readAllBytes(cachedCpPath);
+                    ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                    if (CustomSerDerUtil.readInt(buffer) == CP_CACHE_FORMAT_ID) {
+                        if (CustomSerDerUtil.readInt(buffer) == workspace.getId()) {
+                            ApplicationModel appModel = DefaultApplicationModel.deserialize(buffer);
 
-                                log.debugf("Loaded cached AppModel %s from %s", appModel, cachedCpPath);
-                                for (ResolvedDependency d : appModel.getDependencies()) {
-                                    for (Path p : d.getResolvedPaths()) {
-                                        if (!Files.exists(p)) {
-                                            throw new IOException("Cached artifact does not exist: " + p);
-                                        }
+                            log.debugf("Loaded cached AppModel %s from %s", appModel, cachedCpPath);
+                            for (ResolvedDependency d : appModel.getDependencies()) {
+                                for (Path p : d.getResolvedPaths()) {
+                                    if (!Files.exists(p)) {
+                                        throw new IOException("Cached artifact does not exist: " + p);
                                     }
                                 }
-                                return new CurationResult(appModel);
-                            } else {
-                                debug("Cached deployment classpath has expired for %s", appArtifact);
                             }
+                            return new CurationResult(appModel);
                         } else {
-                            debug("Unsupported classpath cache format in %s for %s", cachedCpPath,
-                                    appArtifact);
+                            debug("Cached deployment classpath has expired for %s", appArtifact);
                         }
-                    } catch (IOException e) {
-                        log.warn("Failed to read deployment classpath cache from " + cachedCpPath + " for "
-                                + appArtifact, e);
+                    } else {
+                        debug("Unsupported classpath cache format in %s for %s", cachedCpPath,
+                                appArtifact);
                     }
                 }
             }
@@ -314,11 +310,10 @@ public class BootstrapAppModelFactory {
                     .resolveManagedModel(appArtifact, forcedDependencies, managingProject, reloadableModules));
             if (cachedCpPath != null) {
                 Files.createDirectories(cachedCpPath.getParent());
-                try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(cachedCpPath))) {
-                    out.writeInt(CP_CACHE_FORMAT_ID);
-                    out.writeInt(workspace.getId());
-                    ObjectOutputStream obj = new ObjectOutputStream(out);
-                    obj.writeObject(curationResult.getApplicationModel());
+                try (OutputStream out = Files.newOutputStream(cachedCpPath)) {
+                    CustomSerDerUtil.writeInt(CP_CACHE_FORMAT_ID, out);
+                    CustomSerDerUtil.writeInt(workspace.getId(), out);
+                    ((DefaultApplicationModel) curationResult.getApplicationModel()).serialize(out);
                 } catch (Exception e) {
                     log.warn("Failed to write classpath cache", e);
                 }

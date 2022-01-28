@@ -1,12 +1,15 @@
 package io.quarkus.bootstrap.workspace;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 
-public class DefaultArtifactSources implements ArtifactSources, Serializable {
-
-    private static final long serialVersionUID = 2053702489268820757L;
+public class DefaultArtifactSources implements ArtifactSources, Serializable, CustomSerDeriable {
 
     private final String classifier;
     private final Collection<SourceDir> sources;
@@ -51,5 +54,25 @@ public class DefaultArtifactSources implements ArtifactSources, Serializable {
         s.append("sources: ").append(sources);
         s.append(" resources: ").append(resources);
         return s.toString();
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        CustomSerDerUtil.writeString(classifier, out);
+        CustomSerDerUtil.writeCollection(sources, out, (dir, fout) -> {
+            ((DefaultSourceDir) dir).serialize(fout);
+        });
+        CustomSerDerUtil.writeCollection(resources, out, (dir, fout) -> {
+            ((DefaultSourceDir) dir).serialize(fout);
+        });
+    }
+
+    public static DefaultArtifactSources deserialize(ByteBuffer buffer) {
+        String classifier = CustomSerDerUtil.readString(buffer);
+        Collection<SourceDir> sources = CustomSerDerUtil.readCollection(buffer, DefaultSourceDir::deserialize, ArrayList::new);
+        Collection<SourceDir> resources = CustomSerDerUtil.readCollection(buffer, DefaultSourceDir::deserialize,
+                ArrayList::new);
+
+        return new DefaultArtifactSources(classifier, sources, resources);
     }
 }

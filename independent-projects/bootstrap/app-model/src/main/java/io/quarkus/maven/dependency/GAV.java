@@ -1,10 +1,14 @@
 package io.quarkus.maven.dependency;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
 import io.quarkus.bootstrap.workspace.WorkspaceModuleId;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class GAV implements WorkspaceModuleId, Serializable {
+public class GAV implements WorkspaceModuleId, Serializable, CustomSerDeriable {
 
     private static final long serialVersionUID = -1110768961345248967L;
 
@@ -55,5 +59,20 @@ public class GAV implements WorkspaceModuleId, Serializable {
     @Override
     public String toString() {
         return groupId + ":" + artifactId + ":" + version;
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        CustomSerDerUtil.writeString(groupId, out);
+        CustomSerDerUtil.writeString(artifactId, out);
+        CustomSerDerUtil.writeString(version, out);
+    }
+
+    public static GAV deserialize(ByteBuffer buffer) {
+        String groupId = CustomSerDerUtil.readString(buffer);
+        String artifactId = CustomSerDerUtil.readString(buffer);
+        String version = CustomSerDerUtil.readString(buffer);
+
+        return new GAV(groupId, artifactId, version);
     }
 }

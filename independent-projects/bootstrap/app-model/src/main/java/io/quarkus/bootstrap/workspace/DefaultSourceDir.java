@@ -1,18 +1,21 @@
 package io.quarkus.bootstrap.workspace;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
 import io.quarkus.paths.DirectoryPathTree;
 import io.quarkus.paths.PathTree;
 import java.io.File;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
-public class DefaultSourceDir implements SourceDir, Serializable {
+public class DefaultSourceDir implements SourceDir, Serializable, CustomSerDeriable {
 
-    private static final long serialVersionUID = 6544177650615687691L;
     private final PathTree srcTree;
     private final PathTree outputTree;
     private final Map<Object, Object> data;
@@ -88,5 +91,20 @@ public class DefaultSourceDir implements SourceDir, Serializable {
             }
         }
         return buf.toString();
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        CustomSerDerUtil.writeObject(srcTree, out);
+        CustomSerDerUtil.writeObject(outputTree, out);
+        CustomSerDerUtil.writeObject(data, out);
+    }
+
+    public static DefaultSourceDir deserialize(ByteBuffer buffer) {
+        PathTree srcTree = CustomSerDerUtil.readObject(buffer);
+        PathTree outputTree = CustomSerDerUtil.readObject(buffer);
+        Map<Object, Object> data = CustomSerDerUtil.readObject(buffer);
+
+        return new DefaultSourceDir(srcTree, outputTree, data);
     }
 }

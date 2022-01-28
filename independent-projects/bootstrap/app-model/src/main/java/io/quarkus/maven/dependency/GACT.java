@@ -1,9 +1,13 @@
 package io.quarkus.maven.dependency;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class GACT implements ArtifactKey, Serializable {
+public class GACT implements ArtifactKey, Serializable, CustomSerDeriable {
 
     private static final long serialVersionUID = 2860156541775021365L;
 
@@ -149,5 +153,22 @@ public class GACT implements ArtifactKey, Serializable {
             buf.append(':').append(type);
         }
         return buf.toString();
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        CustomSerDerUtil.writeString(groupId, out);
+        CustomSerDerUtil.writeString(artifactId, out);
+        CustomSerDerUtil.writeString(classifier, out);
+        CustomSerDerUtil.writeString(type, out);
+    }
+
+    public static GACT deserialize(ByteBuffer buffer) {
+        String groupId = CustomSerDerUtil.readString(buffer);
+        String artifactId = CustomSerDerUtil.readString(buffer);
+        String classifier = CustomSerDerUtil.readString(buffer);
+        String type = CustomSerDerUtil.readString(buffer);
+
+        return new GACT(groupId, artifactId, classifier, type);
     }
 }

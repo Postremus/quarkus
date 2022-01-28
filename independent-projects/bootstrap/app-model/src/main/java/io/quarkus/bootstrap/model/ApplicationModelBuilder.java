@@ -77,7 +77,7 @@ public class ApplicationModelBuilder {
         return this;
     }
 
-    public ApplicationModelBuilder addParentFirstArtifacts(List<ArtifactKey> deps) {
+    public ApplicationModelBuilder addParentFirstArtifacts(Collection<ArtifactKey> deps) {
         this.parentFirstArtifacts.addAll(deps);
         return this;
     }
@@ -87,7 +87,7 @@ public class ApplicationModelBuilder {
         return this;
     }
 
-    public ApplicationModelBuilder addRunnerParentFirstArtifacts(List<ArtifactKey> deps) {
+    public ApplicationModelBuilder addRunnerParentFirstArtifacts(Collection<ArtifactKey> deps) {
         this.runnerParentFirstArtifacts.addAll(deps);
         return this;
     }
@@ -117,7 +117,7 @@ public class ApplicationModelBuilder {
         return this;
     }
 
-    public ApplicationModelBuilder addLesserPriorityArtifacts(List<ArtifactKey> deps) {
+    public ApplicationModelBuilder addLesserPriorityArtifacts(Collection<ArtifactKey> deps) {
         this.lesserPriorityArtifacts.addAll(deps);
         return this;
     }

@@ -7,6 +7,7 @@ import io.quarkus.bootstrap.model.AppDependency;
 import io.quarkus.bootstrap.model.AppModel;
 import io.quarkus.bootstrap.model.ApplicationModel;
 import io.quarkus.bootstrap.model.CapabilityContract;
+import io.quarkus.bootstrap.model.DefaultApplicationModel;
 import io.quarkus.bootstrap.model.PathsCollection;
 import io.quarkus.bootstrap.resolver.AppModelResolverException;
 import io.quarkus.maven.dependency.ArtifactKey;
@@ -16,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -103,8 +104,8 @@ public class BootstrapUtils {
     public static void serializeAppModel(ApplicationModel model, final Path serializedModel)
             throws IOException {
         Files.createDirectories(serializedModel.getParent());
-        try (ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(serializedModel))) {
-            out.writeObject(model);
+        try (OutputStream out = Files.newOutputStream(serializedModel)) {
+            ((DefaultApplicationModel) model).serialize(out);
         }
     }
 

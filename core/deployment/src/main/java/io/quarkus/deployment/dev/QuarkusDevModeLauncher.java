@@ -1,5 +1,6 @@
 package io.quarkus.deployment.dev;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -442,7 +443,10 @@ public abstract class QuarkusDevModeLauncher {
             manifest.write(out);
 
             out.putNextEntry(new ZipEntry(DevModeMain.DEV_MODE_CONTEXT));
-            out.write(DevModeContext.serialize(devModeContext));
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            devModeContext.serialize(baos);
+            out.write(baos.toByteArray());
+            baos.close();
         }
 
         outputDir.mkdirs();

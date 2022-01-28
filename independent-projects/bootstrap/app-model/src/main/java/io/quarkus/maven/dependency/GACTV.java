@@ -1,9 +1,13 @@
 package io.quarkus.maven.dependency;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class GACTV implements ArtifactCoords, Serializable {
+public class GACTV implements ArtifactCoords, Serializable, CustomSerDeriable {
 
     private static final long serialVersionUID = -8362130311897578173L;
 
@@ -129,5 +133,24 @@ public class GACTV implements ArtifactCoords, Serializable {
             buf.append(classifier);
         }
         return buf.append(':').append(type).append(':').append(version);
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        CustomSerDerUtil.writeString(groupId, out);
+        CustomSerDerUtil.writeString(artifactId, out);
+        CustomSerDerUtil.writeString(classifier, out);
+        CustomSerDerUtil.writeString(type, out);
+        CustomSerDerUtil.writeString(version, out);
+    }
+
+    public static GACTV deserialize(ByteBuffer buffer) {
+        String groupId = CustomSerDerUtil.readString(buffer);
+        String artifactId = CustomSerDerUtil.readString(buffer);
+        String classifier = CustomSerDerUtil.readString(buffer);
+        String type = CustomSerDerUtil.readString(buffer);
+        String version = CustomSerDerUtil.readString(buffer);
+
+        return new GACTV(groupId, artifactId, classifier, type, version);
     }
 }

@@ -1,10 +1,15 @@
 package io.quarkus.bootstrap.workspace;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
 import io.quarkus.maven.dependency.Dependency;
+import io.quarkus.maven.dependency.GAV;
 import io.quarkus.paths.PathCollection;
 import io.quarkus.paths.PathList;
 import java.io.File;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,9 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DefaultWorkspaceModule implements WorkspaceModule, Serializable {
-
-    private static final long serialVersionUID = 6906903256002107806L;
+public class DefaultWorkspaceModule implements WorkspaceModule, Serializable, CustomSerDeriable {
 
     public static final String MAIN = "";
     public static final String TEST = "tests";
@@ -111,5 +114,34 @@ public class DefaultWorkspaceModule implements WorkspaceModule, Serializable {
             buf.append(" ").append(a);
         });
         return buf.toString();
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        ((GAV) id).serialize(out);
+        CustomSerDerUtil.writeFile(moduleDir, out);
+        CustomSerDerUtil.writeFile(buildDir, out);
+        CustomSerDerUtil.writePathCollection(buildFiles, out);
+        CustomSerDerUtil.writeCollection(sourcesSets.values(), out, (r, o) -> ((DefaultArtifactSources) r).serialize(o));
+        CustomSerDerUtil.writeCollection(directDepConstraints, out, CustomSerDerUtil::writeObject);
+        CustomSerDerUtil.writeCollection(directDeps, out, CustomSerDerUtil::writeObject);
+    }
+
+    public static DefaultWorkspaceModule deserialize(ByteBuffer buffer) {
+        GAV id = GAV.deserialize(buffer);
+        File moduleDir = CustomSerDerUtil.readFile(buffer);
+        File buildDir = CustomSerDerUtil.readFile(buffer);
+
+        DefaultWorkspaceModule module = new DefaultWorkspaceModule(id, moduleDir, buildDir);
+        module.setBuildFiles(CustomSerDerUtil.readPathCollection(buffer));
+        List<ArtifactSources> sources = CustomSerDerUtil.readCollection(buffer, DefaultArtifactSources::deserialize,
+                ArrayList::new);
+        for (ArtifactSources source : sources) {
+            module.addArtifactSources(source);
+        }
+
+        module.directDepConstraints = CustomSerDerUtil.readCollection(buffer, CustomSerDerUtil::readObject, ArrayList::new);
+        module.directDeps = CustomSerDerUtil.readCollection(buffer, CustomSerDerUtil::readObject, ArrayList::new);
+        return module;
     }
 }

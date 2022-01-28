@@ -1,9 +1,13 @@
 package io.quarkus.maven.dependency;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
-public class ArtifactDependency extends GACTV implements Dependency, Serializable {
+public class ArtifactDependency extends GACTV implements Dependency, Serializable, CustomSerDeriable {
 
     private static final long serialVersionUID = 5669341172899612719L;
 
@@ -97,5 +101,20 @@ public class ArtifactDependency extends GACTV implements Dependency, Serializabl
     @Override
     public String toString() {
         return "[" + toGACTVString() + " " + scope + " " + flags + "]";
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        super.serialize(out);
+        CustomSerDerUtil.writeString(scope, out);
+        CustomSerDerUtil.writeInt(flags, out);
+    }
+
+    public static ArtifactDependency deserialize(ByteBuffer buffer) {
+        GACTV gactv = GACTV.deserialize(buffer);
+        String scope = CustomSerDerUtil.readString(buffer);
+        int flags = CustomSerDerUtil.readInt(buffer);
+
+        return new ArtifactDependency(gactv, scope, flags);
     }
 }

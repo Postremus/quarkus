@@ -1,16 +1,18 @@
 package io.quarkus.maven.dependency;
 
+import io.quarkus.bootstrap.model.CustomSerDerUtil;
+import io.quarkus.bootstrap.model.CustomSerDeriable;
+import io.quarkus.bootstrap.workspace.DefaultWorkspaceModule;
 import io.quarkus.bootstrap.workspace.WorkspaceModule;
 import io.quarkus.paths.PathCollection;
 import io.quarkus.paths.PathList;
 import io.quarkus.paths.PathTree;
-import java.io.Serializable;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class ResolvedArtifactDependency extends ArtifactDependency implements ResolvableDependency, Serializable {
-
-    private static final long serialVersionUID = 4038042391733012566L;
+public class ResolvedArtifactDependency extends ArtifactDependency implements ResolvableDependency, CustomSerDeriable {
 
     private PathCollection paths;
     private WorkspaceModule module;
@@ -93,5 +95,36 @@ public class ResolvedArtifactDependency extends ArtifactDependency implements Re
             buf.append(" " + module);
         }
         return buf.toString();
+    }
+
+    @Override
+    public void serialize(OutputStream out) {
+        super.serialize(out);
+        CustomSerDerUtil.writePathCollection(paths, out);
+        if (module == null) {
+            CustomSerDerUtil.writeBoolean(false, out);
+        } else {
+            CustomSerDerUtil.writeBoolean(true, out);
+            ((DefaultWorkspaceModule) module).serialize(out);
+        }
+    }
+
+    public static ResolvedArtifactDependency deserialize(ByteBuffer buffer) {
+        ArtifactDependency artifactDependency = ArtifactDependency.deserialize(buffer);
+        PathCollection paths = CustomSerDerUtil.readPathCollection(buffer);
+        DefaultWorkspaceModule module = null;
+        boolean exists = CustomSerDerUtil.readBoolean(buffer);
+        if (exists) {
+            module = DefaultWorkspaceModule.deserialize(buffer);
+        }
+
+        ResolvedDependencyBuilder builder = new ResolvedDependencyBuilder();
+        builder.setCoords(artifactDependency);
+        builder.setResolvedPaths(paths);
+        builder.setWorkspaceModule(module);
+        builder.setScope(artifactDependency.getScope());
+        builder.setFlags(artifactDependency.getFlags());
+
+        return new ResolvedArtifactDependency(builder);
     }
 }

@@ -6,6 +6,7 @@ import static java.util.Collections.singleton;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.BindException;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -397,7 +398,7 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
             if (potentialContext instanceof DevModeContext) {
                 context = (DevModeContext) potentialContext;
             } else if (potentialContext instanceof byte[]) {
-                context = DevModeContext.deserialize((byte[]) potentialContext);
+                context = DevModeContext.deserialize(ByteBuffer.wrap((byte[]) potentialContext));
             } else {
                 throw new RuntimeException("invalid dev mode context: " + potentialContext);
             }

@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,7 +53,7 @@ public class DevModeMain implements Closeable {
             DevModeContext context;
             byte[] serialized;
             try {
-                context = DevModeContext.deserialize(serialized = devModeCp.readAllBytes());
+                context = DevModeContext.deserialize(ByteBuffer.wrap(serialized = devModeCp.readAllBytes()));
             } catch (Exception e) {
                 throw new RuntimeException(
                         "Unable to deserialize the dev mode context. Does the Quarkus plugin version match the version of Quarkus that is in use?",

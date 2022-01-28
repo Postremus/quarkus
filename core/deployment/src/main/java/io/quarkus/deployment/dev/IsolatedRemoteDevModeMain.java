@@ -2,6 +2,7 @@ package io.quarkus.deployment.dev;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -199,7 +200,7 @@ public class IsolatedRemoteDevModeMain implements BiConsumer<CuratedApplication,
             if (potentialContext instanceof DevModeContext) {
                 context = (DevModeContext) potentialContext;
             } else if (potentialContext instanceof byte[]) {
-                context = DevModeContext.deserialize((byte[]) potentialContext);
+                context = DevModeContext.deserialize(ByteBuffer.wrap((byte[]) potentialContext));
             } else {
                 throw new RuntimeException("invalid dev mode context: " + potentialContext);
             }
