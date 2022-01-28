@@ -1,11 +1,16 @@
 package io.quarkus.deployment.dev;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
-import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,8 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import io.quarkus.bootstrap.app.QuarkusBootstrap;
+import io.quarkus.bootstrap.model.AppArtifactKey;
+import io.quarkus.bootstrap.model.PathsCollection;
 import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.paths.PathCollection;
 import io.quarkus.paths.PathList;
@@ -22,10 +32,10 @@ import io.quarkus.paths.PathList;
 /**
  * Object that is used to pass context data from the plugin doing the invocation
  * into the dev mode process using java serialization.
- *
+ * <p>
  * There is no need to worry about compat as both sides will always be using the same version
  */
-public class DevModeContext implements Serializable {
+public class DevModeContext {
 
     private static final long serialVersionUID = 4688502145533897982L;
 
@@ -39,7 +49,6 @@ public class DevModeContext implements Serializable {
     private final Map<String, String> buildSystemProperties = new HashMap<>();
     private String sourceEncoding;
 
-    private final List<URL> additionalClassPathElements = new ArrayList<>();
     private File cacheDir;
     private File projectDir;
     private boolean test;
@@ -48,7 +57,7 @@ public class DevModeContext implements Serializable {
     private File devModeRunnerJarFile;
     private boolean localProjectDiscovery = true;
     // args of the main-method
-    private String[] args;
+    private List<String> args;
 
     private List<String> compilerOptions;
     private String releaseJavaVersion;
@@ -108,10 +117,6 @@ public class DevModeContext implements Serializable {
 
     public void setSourceEncoding(String sourceEncoding) {
         this.sourceEncoding = sourceEncoding;
-    }
-
-    public List<URL> getAdditionalClassPathElements() {
-        return additionalClassPathElements;
     }
 
     public File getCacheDir() {
@@ -204,11 +209,11 @@ public class DevModeContext implements Serializable {
     }
 
     public String[] getArgs() {
-        return args;
+        return args.toArray(new String[args.size()]);
     }
 
     public void setArgs(String[] args) {
-        this.args = args;
+        this.args = Arrays.asList(args);
     }
 
     public List<ModuleInfo> getAllModules() {
@@ -447,4 +452,271 @@ public class DevModeContext implements Serializable {
         }
         return compilerOptions.contains(ENABLE_PREVIEW_FLAG);
     }
+
+    //serialization methods
+
+    public static byte[] serialize(DevModeContext context) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        writeModuleInfo(context.applicationRoot, out);
+        writeCollection(context.additionalModules, out, DevModeContext::writeModuleInfo);
+        writeMap(context.systemProperties, out, DevModeContext::writeString, DevModeContext::writeString);
+        writeMap(context.buildSystemProperties, out, DevModeContext::writeString, DevModeContext::writeString);
+        writeString(context.sourceEncoding, out);
+        writeFile(context.cacheDir, out);
+        writeFile(context.projectDir, out);
+        writeBoolean(context.test, out);
+        writeBoolean(context.abortOnFailedStart, out);
+        writeFile(context.devModeRunnerJarFile, out);
+        writeBoolean(context.localProjectDiscovery, out);
+        writeCollection(context.args, out, DevModeContext::writeString);
+        writeCollection(context.compilerOptions, out, DevModeContext::writeString);
+        writeString(context.releaseJavaVersion, out);
+        writeString(context.sourceJavaVersion, out);
+        writeString(context.targetJvmVersion, out);
+        writeCollection(context.compilerPluginArtifacts, out, DevModeContext::writeString);
+        writeCollection(context.compilerPluginsOptions, out, DevModeContext::writeString);
+        writeString(context.alternateEntryPoint, out);
+        writeString(context.mode.name(), out);
+        writeString(context.baseName, out);
+        writeCollection(context.localArtifacts, out, DevModeContext::writeArtifactKey);
+        return out.toByteArray();
+    }
+
+    private static <T> void writeArtifactKey(ArtifactKey t, OutputStream outputStream) {
+        writeString(t.getGroupId(), outputStream);
+        writeString(t.getArtifactId(), outputStream);
+        writeString(t.getClassifier(), outputStream);
+        writeString(t.getType(), outputStream);
+    }
+
+    private static <K, V> void writeMap(Map<K, V> list, OutputStream out, BiConsumer<K, OutputStream> keyHandler,
+            BiConsumer<V, OutputStream> valueHandler) {
+        try {
+            writeInt(list.size(), out);
+            for (var e : list.entrySet()) {
+                keyHandler.accept(e.getKey(), out);
+                valueHandler.accept(e.getValue(), out);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static <T> void writeCollection(Collection<T> list, OutputStream out, BiConsumer<T, OutputStream> handler) {
+        try {
+            if (list == null) {
+                writeInt(0, out);
+                return;
+            }
+            writeInt(list.size(), out);
+            for (T i : list) {
+                handler.accept(i, out);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeModuleInfo(ModuleInfo m, OutputStream out) {
+        writeArtifactKey(m.appArtifactKey, out);
+        writeString(m.name, out);
+        writeString(m.projectDirectory, out);
+        writeCompilationUnit(m.main, out);
+        writeCompilationUnit(m.test, out);
+
+        writeString(m.preBuildOutputDir, out);
+        writePathCollection(m.sourceParents, out);
+        writeString(m.targetDir, out);
+    }
+
+    private static void writePathCollection(PathCollection sourceParents, OutputStream out) {
+        try {
+            writeInt(sourceParents.size(), out);
+            for (var i : sourceParents) {
+                writeFile(i.toFile(), out);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeCompilationUnit(CompilationUnit c, OutputStream out) {
+        if (c == null) {
+            writeBoolean(false, out);
+            return;
+        }
+        writeBoolean(true, out);
+        writePathCollection(c.sourcePaths, out);
+        writeString(c.classesPath, out);
+        writePathCollection(c.resourcePaths, out);
+        writeString(c.resourcesOutputPath, out);
+    }
+
+    private static void writeFile(File s, OutputStream out) {
+        writeString(s.getAbsolutePath(), out);
+    }
+
+    private static void writeString(String s, OutputStream out) {
+
+        try {
+            if (s == null) {
+                writeInt(-1, out);
+                return;
+            }
+            byte[] data = s.getBytes(StandardCharsets.UTF_8);
+            writeInt(data.length, out);
+            out.write(data);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static final void writeInt(int val, OutputStream os)
+            throws IOException {
+        os.write(val >> 24);
+        os.write(val >> 16);
+        os.write(val >> 8);
+        os.write(val);
+    }
+
+    public static final void writeBoolean(boolean val, OutputStream os) {
+        try {
+            os.write(val ? 1 : 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static DevModeContext deserialize(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        DevModeContext context = new DevModeContext();
+        context.applicationRoot = readModuleInfo(buffer);
+        context.additionalModules.addAll(readCollection(buffer, DevModeContext::readModuleInfo, ArrayList::new));
+        context.systemProperties.putAll(readMap(buffer, DevModeContext::readString, DevModeContext::readString));
+        context.buildSystemProperties.putAll(readMap(buffer, DevModeContext::readString, DevModeContext::readString));
+        context.sourceEncoding = readString(buffer);
+        context.cacheDir = readFile(buffer);
+        context.projectDir = readFile(buffer);
+        context.test = readBoolean(buffer);
+        context.abortOnFailedStart = readBoolean(buffer);
+        context.devModeRunnerJarFile = readFile(buffer);
+        context.localProjectDiscovery = readBoolean(buffer);
+        context.args = readCollection(buffer, DevModeContext::readString, ArrayList::new);
+        context.compilerOptions = readCollection(buffer, DevModeContext::readString, ArrayList::new);
+        context.releaseJavaVersion = readString(buffer);
+        context.sourceJavaVersion = readString(buffer);
+        context.targetJvmVersion = readString(buffer);
+        context.compilerPluginArtifacts = readCollection(buffer, DevModeContext::readString, ArrayList::new);
+        context.compilerPluginsOptions = readCollection(buffer, DevModeContext::readString, ArrayList::new);
+        context.alternateEntryPoint = readString(buffer);
+        context.mode = QuarkusBootstrap.Mode.valueOf(readString(buffer));
+        context.baseName = readString(buffer);
+        context.localArtifacts.addAll(readCollection(buffer, DevModeContext::readArtifactKey, HashSet::new));
+        return context;
+    }
+
+    private static ArtifactKey readArtifactKey(ByteBuffer buffer) {
+        String groupId = readString(buffer);
+        String artifactId = readString(buffer);
+        String classifier = readString(buffer);
+        String type = readString(buffer);
+        return new AppArtifactKey(groupId, artifactId, classifier, type);
+    }
+
+    private static <K, V> Map<K, V> readMap(ByteBuffer buffer, Function<ByteBuffer, K> keyHandler,
+            Function<ByteBuffer, V> valueHandler) {
+        int size = readInt(buffer);
+        Map<K, V> ret = new HashMap<>();
+        for (int i = 0; i < size; ++i) {
+            K key = keyHandler.apply(buffer);
+            V value = valueHandler.apply(buffer);
+            ret.put(key, value);
+        }
+        return ret;
+    }
+
+    private static <T, C extends Collection<T>> C readCollection(ByteBuffer buffer, Function<ByteBuffer, T> handler,
+            Supplier<C> supplier) {
+        int size = readInt(buffer);
+        C ret = supplier.get();
+        for (int i = 0; i < size; ++i) {
+            ret.add(handler.apply(buffer));
+        }
+        return ret;
+    }
+
+    private static ModuleInfo readModuleInfo(ByteBuffer buffer) {
+        ModuleInfo.Builder m = new ModuleInfo.Builder();
+        m.appArtifactKey = readArtifactKey(buffer);
+        m.name = readString(buffer);
+        m.projectDirectory = readString(buffer);
+        var main = readCompilationUnit(buffer);
+        var test = readCompilationUnit(buffer);
+        if (main != null) {
+            m.setSourcePaths(main.sourcePaths);
+            m.setClassesPath(main.classesPath);
+            m.setResourcePaths(main.resourcePaths);
+            m.setResourcesOutputPath(main.resourcesOutputPath);
+        }
+        if (test != null) {
+            m.setTestSourcePaths(test.sourcePaths);
+            m.setTestClassesPath(test.classesPath);
+            m.setTestResourcePaths(test.resourcePaths);
+            m.setTestResourcesOutputPath(test.resourcesOutputPath);
+        }
+
+        m.preBuildOutputDir = readString(buffer);
+        m.sourceParents = readPathCollection(buffer);
+        m.targetDir = readString(buffer);
+        return m.build();
+    }
+
+    private static PathCollection readPathCollection(ByteBuffer buffer) {
+        int size = readInt(buffer);
+        List<Path> ret = new ArrayList<>();
+        for (int i = 0; i < size; ++i) {
+            ret.add(readFile(buffer).toPath());
+        }
+        return PathsCollection.from(ret);
+    }
+
+    private static CompilationUnit readCompilationUnit(ByteBuffer buffer) {
+        boolean exists = readBoolean(buffer);
+        if (!exists) {
+            return null;
+        }
+        PathCollection sourcePaths = readPathCollection(buffer);
+        String classesPath = readString(buffer);
+        PathCollection resourcePaths = readPathCollection(buffer);
+        String resourcesOutputPath = readString(buffer);
+        return new CompilationUnit(sourcePaths, classesPath, resourcePaths, resourcesOutputPath);
+    }
+
+    private static File readFile(ByteBuffer buffer) {
+        return new File(readString(buffer));
+    }
+
+    private static String readString(ByteBuffer buffer) {
+        int length = readInt(buffer);
+        if (length == -1) {
+            return null;
+        }
+        byte[] data = new byte[length];
+        buffer.get(data);
+        return new String(data, StandardCharsets.UTF_8);
+    }
+
+    private static int readInt(ByteBuffer b) {
+        int ret = 0;
+        ret += (b.get() & 0xFF) << 24;
+        ret += (b.get() & 0xFF) << 16;
+        ret += (b.get() & 0xFF) << 8;
+        ret += (b.get() & 0xFF);
+        return ret;
+    }
+
+    public static boolean readBoolean(ByteBuffer b) {
+        return b.get() > 0;
+    }
+
 }

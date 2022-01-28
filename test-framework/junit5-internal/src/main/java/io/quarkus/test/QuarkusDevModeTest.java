@@ -296,7 +296,7 @@ public class QuarkusDevModeTest
             context.setAbortOnFailedStart(!allowFailedStart);
             context.getBuildSystemProperties().put("quarkus.banner.enabled", "false");
             context.getBuildSystemProperties().putAll(buildSystemProperties);
-            devModeMain = new DevModeMain(context);
+            devModeMain = new DevModeMain(context, null);
             devModeMain.start();
             ApplicationStateNotification.waitForApplicationStart();
         } catch (Exception e) {

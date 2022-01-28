@@ -3,11 +3,9 @@ package io.quarkus.deployment.dev;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URL;
@@ -39,26 +37,29 @@ public class DevModeMain implements Closeable {
     private static final Logger log = Logger.getLogger(DevModeMain.class);
 
     private final DevModeContext context;
+    private final byte[] serialziedContext;
 
     private static volatile CuratedApplication curatedApplication;
     private Closeable realCloseable;
 
-    public DevModeMain(DevModeContext context) {
+    public DevModeMain(DevModeContext context, byte[] serialziedContext) {
         this.context = context;
+        this.serialziedContext = serialziedContext;
     }
 
     public static void main(String... args) throws Exception {
         try (InputStream devModeCp = DevModeMain.class.getClassLoader().getResourceAsStream(DEV_MODE_CONTEXT)) {
             DevModeContext context;
+            byte[] serialized;
             try {
-                context = (DevModeContext) new ObjectInputStream(new DataInputStream(devModeCp)).readObject();
+                context = DevModeContext.deserialize(serialized = devModeCp.readAllBytes());
             } catch (Exception e) {
                 throw new RuntimeException(
                         "Unable to deserialize the dev mode context. Does the Quarkus plugin version match the version of Quarkus that is in use?",
                         e);
             }
             context.setArgs(args);
-            DevModeMain devModeMain = new DevModeMain(context);
+            DevModeMain devModeMain = new DevModeMain(context, serialized);
             devModeMain.start();
         }
     }
@@ -126,7 +127,7 @@ public class DevModeMain implements Closeable {
             bootstrapBuilder.setBuildSystemProperties(buildSystemProperties);
 
             Map<String, Object> map = new HashMap<>();
-            map.put(DevModeContext.class.getName(), context);
+            map.put(DevModeContext.class.getName(), serialziedContext);
             map.put(DevModeType.class.getName(), DevModeType.LOCAL);
             curatedApplication = bootstrapBuilder.setTest(context.isTest()).build().bootstrap();
             realCloseable = (Closeable) curatedApplication.runInAugmentClassLoader(

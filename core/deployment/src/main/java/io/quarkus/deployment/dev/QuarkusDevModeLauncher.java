@@ -1,11 +1,8 @@
 package io.quarkus.deployment.dev;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -445,11 +442,7 @@ public abstract class QuarkusDevModeLauncher {
             manifest.write(out);
 
             out.putNextEntry(new ZipEntry(DevModeMain.DEV_MODE_CONTEXT));
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            ObjectOutputStream obj = new ObjectOutputStream(new DataOutputStream(bytes));
-            obj.writeObject(devModeContext);
-            obj.close();
-            out.write(bytes.toByteArray());
+            out.write(DevModeContext.serialize(devModeContext));
         }
 
         outputDir.mkdirs();

@@ -3,12 +3,8 @@ package io.quarkus.deployment.dev;
 import static io.quarkus.deployment.dev.testing.MessageFormat.BLUE;
 import static java.util.Collections.singleton;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.BindException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -400,13 +396,10 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
             Object potentialContext = params.get(DevModeContext.class.getName());
             if (potentialContext instanceof DevModeContext) {
                 context = (DevModeContext) potentialContext;
+            } else if (potentialContext instanceof byte[]) {
+                context = DevModeContext.deserialize((byte[]) potentialContext);
             } else {
-                //this was from the external class loader
-                //we need to copy it into this one
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                ObjectOutputStream oo = new ObjectOutputStream(out);
-                oo.writeObject(potentialContext);
-                context = (DevModeContext) new ObjectInputStream(new ByteArrayInputStream(out.toByteArray())).readObject();
+                throw new RuntimeException("invalid dev mode context: " + potentialContext);
             }
 
             augmentAction = new AugmentActionImpl(curatedApplication,
