@@ -151,8 +151,15 @@
                             <artifactSet>
                                 <includes>
                                     <include>org.fusesource.jansi:jansi</include>
+                                    <include>com.fasterxml.jackson.core:*</include>
                                 </includes>
                             </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.fasterxml</pattern>
+                                    <shadedPattern>io.quarkus.com.fasterxml</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>

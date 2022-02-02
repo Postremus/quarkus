@@ -5,6 +5,10 @@ import java.util.Objects;
 
 public class ArtifactKey implements io.quarkus.maven.dependency.ArtifactKey, Serializable {
 
+    private ArtifactKey() {
+
+    }
+
     public static ArtifactKey fromString(String str) {
         return new ArtifactKey(split(str, new String[4], str.length()));
     }
@@ -61,10 +65,10 @@ public class ArtifactKey implements io.quarkus.maven.dependency.ArtifactKey, Ser
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
 
     public ArtifactKey(String[] parts) {
         this.groupId = parts[0];

@@ -8,9 +8,13 @@ public class GAV implements WorkspaceModuleId, Serializable {
 
     private static final long serialVersionUID = -1110768961345248967L;
 
-    private final String groupId;
-    private final String artifactId;
-    private final String version;
+    private String groupId;
+    private String artifactId;
+    private String version;
+
+    private GAV() {
+
+    }
 
     public GAV(String groupId, String artifactId, String version) {
         super();

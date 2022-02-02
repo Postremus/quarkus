@@ -14,6 +14,10 @@ import java.util.Objects;
 
 public class PathList implements PathCollection, Serializable {
 
+    private PathList() {
+
+    }
+
     private static final long serialVersionUID = 4972894992642525297L;
 
     public static PathList from(Iterable<Path> paths) {

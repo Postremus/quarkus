@@ -5,6 +5,10 @@ import java.util.Objects;
 
 public class ArtifactCoords implements io.quarkus.maven.dependency.ArtifactCoords, Serializable {
 
+    private ArtifactCoords() {
+
+    }
+
     public static ArtifactCoords fromString(String str) {
         return new ArtifactCoords(split(str, new String[5]));
     }
@@ -23,11 +27,11 @@ public class ArtifactCoords implements io.quarkus.maven.dependency.ArtifactCoord
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
-    protected final String version;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
+    protected String version;
 
     protected transient ArtifactKey key;
 

@@ -11,9 +11,13 @@ public class AppDependency implements ResolvedDependency, Serializable {
 
     private static final long serialVersionUID = 7030281544498286020L;
 
-    private final AppArtifact artifact;
-    private final String scope;
+    private AppArtifact artifact;
+    private String scope;
     private int flags;
+
+    private AppDependency() {
+
+    }
 
     public AppDependency(AppArtifact artifact, String scope, int... flags) {
         this(artifact, scope, false, flags);

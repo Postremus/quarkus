@@ -24,6 +24,7 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.bootstrap.app.CuratedApplication;
 import io.quarkus.bootstrap.app.QuarkusBootstrap;
+import io.quarkus.bootstrap.util.BootstrapUtils;
 import io.quarkus.deployment.util.ProcessUtil;
 import io.quarkus.dev.appstate.ApplicationStateNotification;
 import io.quarkus.dev.spi.DevModeType;
@@ -125,10 +126,11 @@ public class DevModeMain implements Closeable {
             buildSystemProperties.putAll(context.getBuildSystemProperties());
             bootstrapBuilder.setBuildSystemProperties(buildSystemProperties);
 
-            Map<String, Object> map = new HashMap<>();
-            map.put(DevModeContext.class.getName(), context);
-            map.put(DevModeType.class.getName(), DevModeType.LOCAL);
             curatedApplication = bootstrapBuilder.setTest(context.isTest()).build().bootstrap();
+            Map<String, Object> map = new HashMap<>();
+            map.put(DevModeContext.class.getName(), BootstrapUtils.convertCL(context, DevModeContext.class.getName(),
+                    curatedApplication.getAugmentClassLoader()));
+            map.put(DevModeType.class.getName(), DevModeType.LOCAL);
             realCloseable = (Closeable) curatedApplication.runInAugmentClassLoader(
                     context.getAlternateEntryPoint() == null ? IsolatedDevModeMain.class.getName()
                             : context.getAlternateEntryPoint(),

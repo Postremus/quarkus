@@ -15,6 +15,10 @@ import java.util.List;
 
 public class PathsCollection implements PathCollection, Serializable {
 
+    private PathsCollection() {
+
+    }
+
     private static final long serialVersionUID = -7214825505580070033L;
 
     public static PathsCollection from(Iterable<Path> paths) {

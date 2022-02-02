@@ -242,15 +242,19 @@ public class DevModeContext implements Serializable {
 
         private static final long serialVersionUID = -1376678003747618410L;
 
-        private final ArtifactKey appArtifactKey;
-        private final String name;
-        private final String projectDirectory;
-        private final CompilationUnit main;
-        private final CompilationUnit test;
+        private ArtifactKey appArtifactKey;
+        private String name;
+        private String projectDirectory;
+        private CompilationUnit main;
+        private CompilationUnit test;
 
-        private final String preBuildOutputDir;
-        private final PathCollection sourceParents;
-        private final String targetDir;
+        private String preBuildOutputDir;
+        private PathCollection sourceParents;
+        private String targetDir;
+
+        private ModuleInfo() {
+
+        }
 
         ModuleInfo(Builder builder) {
             this.appArtifactKey = builder.appArtifactKey;
@@ -412,9 +416,13 @@ public class DevModeContext implements Serializable {
         private static final long serialVersionUID = -511238068393954948L;
 
         private PathCollection sourcePaths;
-        private final String classesPath;
-        private final PathCollection resourcePaths;
-        private final String resourcesOutputPath;
+        private String classesPath;
+        private PathCollection resourcePaths;
+        private String resourcesOutputPath;
+
+        private CompilationUnit() {
+
+        }
 
         public CompilationUnit(PathCollection sourcePaths, String classesPath, PathCollection resourcePaths,
                 String resourcesOutputPath) {

@@ -17,9 +17,13 @@ public class AppArtifact extends AppArtifactCoords implements ResolvedDependency
     private static final long serialVersionUID = -6226544163467103712L;
 
     protected PathsCollection paths;
-    private final WorkspaceModule module;
-    private final String scope;
-    private final int flags;
+    private WorkspaceModule module;
+    private String scope;
+    private int flags;
+
+    private AppArtifact() {
+
+    }
 
     public AppArtifact(AppArtifactCoords coords) {
         this(coords, null);

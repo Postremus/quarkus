@@ -19,13 +19,17 @@ public class DefaultWorkspaceModule implements WorkspaceModule, Serializable {
     public static final String MAIN = "";
     public static final String TEST = "tests";
 
-    private final WorkspaceModuleId id;
-    private final File moduleDir;
-    private final File buildDir;
+    private WorkspaceModuleId id;
+    private File moduleDir;
+    private File buildDir;
     private PathCollection buildFiles;
     private final Map<String, ArtifactSources> sourcesSets = new HashMap<>();
     private List<Dependency> directDepConstraints = Collections.emptyList();
     private List<Dependency> directDeps = Collections.emptyList();
+
+    private DefaultWorkspaceModule() {
+
+    }
 
     public DefaultWorkspaceModule(WorkspaceModuleId id, File moduleDir, File buildDir) {
         super();

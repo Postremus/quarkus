@@ -7,6 +7,10 @@ public class GACTV implements ArtifactCoords, Serializable {
 
     private static final long serialVersionUID = -8362130311897578173L;
 
+    protected GACTV() {
+
+    }
+
     public static GACTV fromString(String str) {
         return new GACTV(split(str, new String[5]));
     }
@@ -25,11 +29,11 @@ public class GACTV implements ArtifactCoords, Serializable {
         return parts;
     }
 
-    private final String groupId;
-    private final String artifactId;
-    private final String classifier;
-    private final String type;
-    private final String version;
+    private String groupId;
+    private String artifactId;
+    private String classifier;
+    private String type;
+    private String version;
 
     private transient ArtifactKey key;
 

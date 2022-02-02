@@ -9,16 +9,18 @@ import java.util.Set;
 
 public class DefaultApplicationModel implements ApplicationModel, Serializable {
 
-    private static final long serialVersionUID = -3878782344578748234L;
+    private ResolvedDependency appArtifact;
+    private List<ResolvedDependency> dependencies;
+    private PlatformImports platformImports;
+    private List<ExtensionCapabilities> capabilityContracts;
+    private Set<ArtifactKey> parentFirstArtifacts;
+    private Set<ArtifactKey> runnerParentFirstArtifacts;
+    private Set<ArtifactKey> lesserPriorityArtifacts;
+    private Set<ArtifactKey> localProjectArtifacts;
 
-    private final ResolvedDependency appArtifact;
-    private final List<ResolvedDependency> dependencies;
-    private final PlatformImports platformImports;
-    private final List<ExtensionCapabilities> capabilityContracts;
-    private final Set<ArtifactKey> parentFirstArtifacts;
-    private final Set<ArtifactKey> runnerParentFirstArtifacts;
-    private final Set<ArtifactKey> lesserPriorityArtifacts;
-    private final Set<ArtifactKey> localProjectArtifacts;
+    private DefaultApplicationModel() {
+
+    }
 
     public DefaultApplicationModel(ApplicationModelBuilder builder) {
         this.appArtifact = builder.appArtifact;

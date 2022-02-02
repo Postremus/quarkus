@@ -18,6 +18,10 @@ public class AppArtifactCoords implements ArtifactCoords, Serializable {
     public static final String TYPE_JAR = "jar";
     public static final String TYPE_POM = "pom";
 
+    protected AppArtifactCoords() {
+
+    }
+
     public static AppArtifactCoords fromString(String str) {
         return new AppArtifactCoords(split(str, new String[5]));
     }
@@ -42,11 +46,11 @@ public class AppArtifactCoords implements ArtifactCoords, Serializable {
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
-    protected final String version;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
+    protected String version;
 
     protected transient AppArtifactKey key;
 

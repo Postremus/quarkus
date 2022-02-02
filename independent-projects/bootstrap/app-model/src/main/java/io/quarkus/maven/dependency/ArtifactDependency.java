@@ -7,11 +7,15 @@ public class ArtifactDependency extends GACTV implements Dependency, Serializabl
 
     private static final long serialVersionUID = 5669341172899612719L;
 
+    protected ArtifactDependency() {
+
+    }
+
     public static ArtifactDependency of(String groupId, String artifactId, String version) {
         return new ArtifactDependency(groupId, artifactId, null, ArtifactCoords.TYPE_JAR, version);
     }
 
-    private final String scope;
+    private String scope;
     private int flags;
 
     public ArtifactDependency(String groupId, String artifactId, String classifier, String type, String version) {

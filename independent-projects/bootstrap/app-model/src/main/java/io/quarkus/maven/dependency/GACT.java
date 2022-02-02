@@ -5,6 +5,10 @@ import java.util.Objects;
 
 public class GACT implements ArtifactKey, Serializable {
 
+    private GACT() {
+
+    }
+
     private static final long serialVersionUID = 2860156541775021365L;
 
     public static GACT fromString(String str) {
@@ -63,10 +67,10 @@ public class GACT implements ArtifactKey, Serializable {
         return parts;
     }
 
-    protected final String groupId;
-    protected final String artifactId;
-    protected final String classifier;
-    protected final String type;
+    protected String groupId;
+    protected String artifactId;
+    protected String classifier;
+    protected String type;
 
     public GACT(String[] parts) {
         this.groupId = parts[0];

@@ -16,6 +16,10 @@ public class ResolvedArtifactDependency extends ArtifactDependency implements Re
     private WorkspaceModule module;
     private volatile transient PathTree contentTree;
 
+    private ResolvedArtifactDependency() {
+
+    }
+
     public ResolvedArtifactDependency(ArtifactCoords coords) {
         this(coords, (PathCollection) null);
     }
