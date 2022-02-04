@@ -43,7 +43,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
     // imported platform BOMs by platform keys (groupId)
     private final Map<String, Collection<ArtifactCoords>> importedPlatformBoms = new HashMap<>();
 
-    private final Map<ArtifactCoords, PlatformImport> platformImports = new HashMap<>();
+    private final Map<String, PlatformImport> platformImports = new HashMap<>();
 
     final Map<String, String> collectedProps = new HashMap<String, String>();
     private final Collection<ArtifactCoords> platformBoms = new ArrayList<>();
@@ -82,7 +82,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
                         artifactId.length() - BootstrapConstants.PLATFORM_DESCRIPTOR_ARTIFACT_ID_SUFFIX.length()),
                 null, "pom",
                 version);
-        platformImports.computeIfAbsent(bomCoords, c -> new PlatformImport()).descriptorFound = true;
+        platformImports.computeIfAbsent(bomCoords.toString(), c -> new PlatformImport()).descriptorFound = true;
         platformBoms.add(bomCoords);
     }
 
@@ -93,7 +93,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
                         artifactId.length() - BootstrapConstants.PLATFORM_PROPERTIES_ARTIFACT_ID_SUFFIX.length()),
                 null, "pom",
                 version);
-        platformImports.computeIfAbsent(bomCoords, c -> new PlatformImport());
+        platformImports.computeIfAbsent(bomCoords.toString(), c -> new PlatformImport());
         importedPlatformBoms.computeIfAbsent(groupId, g -> new ArrayList<>()).add(bomCoords);
 
         final Properties props = new Properties();
@@ -126,7 +126,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
     @Override
     public String getMisalignmentReport() {
         StringWriter error = null;
-        for (Map.Entry<ArtifactCoords, PlatformImport> pi : platformImports.entrySet()) {
+        for (Map.Entry<String, PlatformImport> pi : platformImports.entrySet()) {
             if (!pi.getValue().descriptorFound) {
                 if (error == null) {
                     error = new StringWriter();
@@ -135,7 +135,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
                 } else {
                     error.append(", ");
                 }
-                error.append(pi.getKey().toString());
+                error.append(pi.getKey());
             }
         }
         if (error != null) {
@@ -177,7 +177,7 @@ public class PlatformImportsImpl implements PlatformImports, Serializable {
     }
 
     boolean isAligned(Map<String, Collection<ArtifactCoords>> importedPlatformBoms) {
-        for (Map.Entry<ArtifactCoords, PlatformImport> pi : platformImports.entrySet()) {
+        for (Map.Entry<String, PlatformImport> pi : platformImports.entrySet()) {
             if (!pi.getValue().descriptorFound) {
                 return false;
             }

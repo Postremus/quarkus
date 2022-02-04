@@ -20,12 +20,16 @@ public class CapabilityContract implements ExtensionCapabilities, Serializable {
         return new CapabilityContract(extension, list);
     }
 
-    private final String extension;
-    private final List<String> providesCapabilities;
+    private String extension;
+    private List<String> providesCapabilities;
 
     public CapabilityContract(String extension, List<String> providesCapabilities) {
         this.extension = Objects.requireNonNull(extension, "extension can't be null");
         this.providesCapabilities = Objects.requireNonNull(providesCapabilities, "providesCapabilities can't be null");
+    }
+
+    private CapabilityContract() {
+
     }
 
     @Override
