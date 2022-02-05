@@ -1,5 +1,6 @@
 package io.quarkus.bootstrap.util;
 
+import com.esotericsoftware.kryo.io.Output;
 import io.quarkus.bootstrap.BootstrapConstants;
 import io.quarkus.bootstrap.model.AppArtifact;
 import io.quarkus.bootstrap.model.AppArtifactKey;
@@ -104,7 +105,7 @@ public class BootstrapUtils {
             throws IOException {
         Files.createDirectories(serializedModel.getParent());
         try (ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(serializedModel))) {
-            out.writeObject(model);
+            KryoUtil.KRYO.get().writeObject(new Output(out), model);
         }
     }
 

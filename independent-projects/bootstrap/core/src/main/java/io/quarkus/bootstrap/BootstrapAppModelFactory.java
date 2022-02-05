@@ -1,5 +1,7 @@
 package io.quarkus.bootstrap;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import io.quarkus.bootstrap.app.CurationResult;
 import io.quarkus.bootstrap.model.ApplicationModel;
 import io.quarkus.bootstrap.resolver.AppModelResolver;
@@ -12,15 +14,13 @@ import io.quarkus.bootstrap.resolver.maven.workspace.LocalProject;
 import io.quarkus.bootstrap.resolver.maven.workspace.LocalWorkspace;
 import io.quarkus.bootstrap.resolver.maven.workspace.ModelUtils;
 import io.quarkus.bootstrap.util.IoUtils;
+import io.quarkus.bootstrap.util.KryoUtil;
 import io.quarkus.maven.dependency.ArtifactCoords;
 import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.maven.dependency.ResolvedDependency;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -206,9 +206,9 @@ public class BootstrapAppModelFactory {
             final Path p = Paths.get(serializedModel);
             if (Files.exists(p)) {
                 try (InputStream existing = Files.newInputStream(Paths.get(serializedModel))) {
-                    final ApplicationModel appModel = (ApplicationModel) new ObjectInputStream(existing).readObject();
+                    ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(existing), ApplicationModel.class);
                     return new CurationResult(appModel);
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (IOException e) {
                     log.error("Failed to load serialized app mode", e);
                 }
                 IoUtils.recursiveDelete(p);
@@ -251,28 +251,18 @@ public class BootstrapAppModelFactory {
                 cachedCpPath = resolveCachedCpPath(localProject);
                 if (Files.exists(cachedCpPath)
                         && workspace.getLastModified() < Files.getLastModifiedTime(cachedCpPath).toMillis()) {
-                    try (DataInputStream reader = new DataInputStream(Files.newInputStream(cachedCpPath))) {
-                        if (reader.readInt() == CP_CACHE_FORMAT_ID) {
-                            if (reader.readInt() == workspace.getId()) {
-                                ObjectInputStream in = new ObjectInputStream(reader);
-                                ApplicationModel appModel = (ApplicationModel) in.readObject();
+                    try (InputStream in = Files.newInputStream(cachedCpPath)) {
+                        ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(in), ApplicationModel.class);
 
-                                log.debugf("Loaded cached AppModel %s from %s", appModel, cachedCpPath);
-                                for (ResolvedDependency d : appModel.getDependencies()) {
-                                    for (Path p : d.getResolvedPaths()) {
-                                        if (!Files.exists(p)) {
-                                            throw new IOException("Cached artifact does not exist: " + p);
-                                        }
-                                    }
+                        log.debugf("Loaded cached AppModel %s from %s", appModel, cachedCpPath);
+                        for (ResolvedDependency d : appModel.getDependencies()) {
+                            for (Path p : d.getResolvedPaths()) {
+                                if (!Files.exists(p)) {
+                                    throw new IOException("Cached artifact does not exist: " + p);
                                 }
-                                return new CurationResult(appModel);
-                            } else {
-                                debug("Cached deployment classpath has expired for %s", appArtifact);
                             }
-                        } else {
-                            debug("Unsupported classpath cache format in %s for %s", cachedCpPath,
-                                    appArtifact);
                         }
+                        return new CurationResult(appModel);
                     } catch (IOException e) {
                         log.warn("Failed to read deployment classpath cache from " + cachedCpPath + " for "
                                 + appArtifact, e);
@@ -283,11 +273,11 @@ public class BootstrapAppModelFactory {
                     .resolveManagedModel(appArtifact, forcedDependencies, managingProject, reloadableModules));
             if (cachedCpPath != null) {
                 Files.createDirectories(cachedCpPath.getParent());
-                try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(cachedCpPath))) {
-                    out.writeInt(CP_CACHE_FORMAT_ID);
-                    out.writeInt(workspace.getId());
-                    ObjectOutputStream obj = new ObjectOutputStream(out);
-                    obj.writeObject(curationResult.getApplicationModel());
+                try (OutputStream out = Files.newOutputStream(cachedCpPath)) {
+                    //TODO
+                    //out.writeInt(CP_CACHE_FORMAT_ID);
+                    //out.writeInt(workspace.getId());
+                    KryoUtil.KRYO.get().writeObject(new Output(out), curationResult.getApplicationModel());
                 } catch (Exception e) {
                     log.warn("Failed to write classpath cache", e);
                 }
