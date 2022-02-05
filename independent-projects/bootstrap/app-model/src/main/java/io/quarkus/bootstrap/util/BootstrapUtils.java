@@ -113,8 +113,9 @@ public class BootstrapUtils {
 
     public static Object convertCL(Object object, String className, ClassLoader targetCL) {
         try {
-            byte[] bytes = Mapper.getMapper().writeValueAsBytes(object);
-            ObjectMapper mapper = Mapper.getMapper().setTypeFactory(TypeFactory.defaultInstance().withClassLoader(targetCL));
+            ObjectMapper mapper = Mapper.getMapper();
+            byte[] bytes = mapper.writeValueAsBytes(object);
+            mapper = mapper.setTypeFactory(TypeFactory.defaultInstance().withClassLoader(targetCL));
 
             Class<?> objectMapperClass = targetCL.loadClass(className);
 
