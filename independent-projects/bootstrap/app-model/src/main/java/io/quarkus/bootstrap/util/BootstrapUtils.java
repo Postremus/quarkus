@@ -1,5 +1,6 @@
 package io.quarkus.bootstrap.util;
 
+import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import io.quarkus.bootstrap.BootstrapConstants;
 import io.quarkus.bootstrap.model.AppArtifact;
@@ -8,6 +9,7 @@ import io.quarkus.bootstrap.model.AppDependency;
 import io.quarkus.bootstrap.model.AppModel;
 import io.quarkus.bootstrap.model.ApplicationModel;
 import io.quarkus.bootstrap.model.CapabilityContract;
+import io.quarkus.bootstrap.model.DefaultApplicationModel;
 import io.quarkus.bootstrap.model.PathsCollection;
 import io.quarkus.bootstrap.resolver.AppModelResolverException;
 import io.quarkus.maven.dependency.ArtifactKey;
@@ -16,8 +18,7 @@ import io.quarkus.maven.dependency.ResolvedDependency;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -104,7 +105,7 @@ public class BootstrapUtils {
     public static void serializeAppModel(ApplicationModel model, final Path serializedModel)
             throws IOException {
         Files.createDirectories(serializedModel.getParent());
-        try (ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(serializedModel))) {
+        try (OutputStream out = Files.newOutputStream(serializedModel)) {
             KryoUtil.KRYO.get().writeObject(new Output(out), model);
         }
     }
@@ -117,12 +118,11 @@ public class BootstrapUtils {
 
     public static ApplicationModel deserializeQuarkusModel(Path modelPath) throws AppModelResolverException {
         if (Files.exists(modelPath)) {
-            try (InputStream existing = Files.newInputStream(modelPath);
-                    ObjectInputStream object = new ObjectInputStream(existing)) {
-                ApplicationModel model = (ApplicationModel) object.readObject();
+            try (InputStream existing = Files.newInputStream(modelPath)) {
+                ApplicationModel model = KryoUtil.KRYO.get().readObject(new Input(existing), DefaultApplicationModel.class);
                 IoUtils.recursiveDelete(modelPath);
                 return model;
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (IOException e) {
                 throw new AppModelResolverException("Failed to deserialize quarkus model", e);
             }
         }

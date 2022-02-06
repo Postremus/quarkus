@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import io.quarkus.bootstrap.app.CurationResult;
 import io.quarkus.bootstrap.model.ApplicationModel;
+import io.quarkus.bootstrap.model.DefaultApplicationModel;
 import io.quarkus.bootstrap.resolver.AppModelResolver;
 import io.quarkus.bootstrap.resolver.AppModelResolverException;
 import io.quarkus.bootstrap.resolver.BootstrapAppModelResolver;
@@ -206,7 +207,8 @@ public class BootstrapAppModelFactory {
             final Path p = Paths.get(serializedModel);
             if (Files.exists(p)) {
                 try (InputStream existing = Files.newInputStream(Paths.get(serializedModel))) {
-                    ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(existing), ApplicationModel.class);
+                    ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(existing),
+                            DefaultApplicationModel.class);
                     return new CurationResult(appModel);
                 } catch (IOException e) {
                     log.error("Failed to load serialized app mode", e);
@@ -252,7 +254,8 @@ public class BootstrapAppModelFactory {
                 if (Files.exists(cachedCpPath)
                         && workspace.getLastModified() < Files.getLastModifiedTime(cachedCpPath).toMillis()) {
                     try (InputStream in = Files.newInputStream(cachedCpPath)) {
-                        ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(in), ApplicationModel.class);
+                        ApplicationModel appModel = KryoUtil.KRYO.get().readObject(new Input(in),
+                                DefaultApplicationModel.class);
 
                         log.debugf("Loaded cached AppModel %s from %s", appModel, cachedCpPath);
                         for (ResolvedDependency d : appModel.getDependencies()) {
