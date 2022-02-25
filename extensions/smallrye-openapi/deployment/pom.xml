@@ -26,6 +26,10 @@
         <artifactId>quarkus-smallrye-openapi-spi</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-open-api-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-resteasy-server-common-spi</artifactId>
     </dependency>
@@ -56,6 +60,10 @@
     <dependency>
       <groupId>io.smallrye</groupId>
       <artifactId>smallrye-open-api-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-open-api-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.smallrye</groupId>
