@@ -64,9 +64,7 @@ public class QuarkusCompiler implements Closeable {
         }
         Set<Path> paths = new HashSet<>();
         for (ResolvedDependency i : application.getApplicationModel().getRuntimeDependencies()) {
-            for (Path p : i.getContentTree().getRoots()) {
-                paths.add(p);
-            }
+            paths.addAll(i.getContentTree().getRoots());
         }
 
         Deque<Path> toParse = new ArrayDeque<>(paths);
@@ -80,9 +78,6 @@ public class QuarkusCompiler implements Closeable {
             String s = file.getAbsolutePath();
             if (!parsedFiles.contains(s)) {
                 parsedFiles.add(s);
-                if (!file.exists()) {
-                    continue;
-                }
                 if (path.getFileSystem() == FileSystems.getDefault()) {
                     classPathElements.add(file);
                 } else if (path.getFileSystem().provider() == FileSystemProviders.ZIP_PROVIDER) {

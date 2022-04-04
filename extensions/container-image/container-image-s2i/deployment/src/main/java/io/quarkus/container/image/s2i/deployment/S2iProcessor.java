@@ -83,8 +83,6 @@ public class S2iProcessor {
     @BuildStep(onlyIf = { IsNormalNotRemoteDev.class, S2iBuild.class }, onlyIfNot = NativeBuild.class)
     public void s2iRequirementsJvm(S2iConfig s2iConfig,
             CurateOutcomeBuildItem curateOutcomeBuildItem,
-            OutputTargetBuildItem out,
-            PackageConfig packageConfig,
             JarBuildItem jarBuildItem,
             CompiledJavaVersionBuildItem compiledJavaVersion,
             BuildProducer<KubernetesEnvBuildItem> envProducer,
@@ -128,9 +126,6 @@ public class S2iProcessor {
 
     @BuildStep(onlyIf = { IsNormalNotRemoteDev.class, S2iBuild.class, NativeBuild.class })
     public void s2iRequirementsNative(S2iConfig s2iConfig,
-            CurateOutcomeBuildItem curateOutcomeBuildItem,
-            OutputTargetBuildItem out,
-            PackageConfig packageConfig,
             NativeImageBuildItem nativeImage,
             BuildProducer<KubernetesEnvBuildItem> envProducer,
             BuildProducer<BaseImageInfoBuildItem> builderImageProducer,

@@ -1,6 +1,8 @@
 package io.quarkus.arc.processor;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Dependent;
 import javax.enterprise.context.RequestScoped;
@@ -16,9 +18,14 @@ public enum BuiltinScope {
     APPLICATION(ApplicationScoped.class, true),
     REQUEST(RequestScoped.class, true);
 
+    private static final List<BuiltinScope> SCOPES;
+    static {
+        SCOPES = Arrays.asList(BuiltinScope.values());
+    }
+
     private ScopeInfo info;
 
-    private BuiltinScope(Class<? extends Annotation> clazz, boolean isNormal) {
+    BuiltinScope(Class<? extends Annotation> clazz, boolean isNormal) {
         this.info = new ScopeInfo(clazz, isNormal);
     }
 
@@ -31,8 +38,8 @@ public enum BuiltinScope {
     }
 
     public static BuiltinScope from(DotName scopeAnnotationName) {
-        for (BuiltinScope scope : BuiltinScope.values()) {
-            if (scope.getInfo().getDotName().equals(scopeAnnotationName)) {
+        for (BuiltinScope scope : SCOPES) {
+            if (scope.getName().equals(scopeAnnotationName)) {
                 return scope;
             }
         }
@@ -40,7 +47,7 @@ public enum BuiltinScope {
     }
 
     public static BuiltinScope from(ClassInfo clazz) {
-        for (BuiltinScope scope : BuiltinScope.values()) {
+        for (BuiltinScope scope : SCOPES) {
             if (clazz.classAnnotation(scope.getName()) != null) {
                 return scope;
             }

@@ -22,6 +22,10 @@ public interface PathTree {
 
     static PathTree ofDirectoryOrArchive(Path p) {
         try {
+            if (p.toString().endsWith(".jar")) {
+                return new ArchivePathTree(p);
+            }
+
             final BasicFileAttributes fileAttributes = Files.readAttributes(p, BasicFileAttributes.class);
             return fileAttributes.isDirectory() ? new DirectoryPathTree(p) : new ArchivePathTree(p);
         } catch (IOException e) {
@@ -30,9 +34,6 @@ public interface PathTree {
     }
 
     static PathTree ofArchive(Path archive) {
-        if (!Files.exists(archive)) {
-            throw new IllegalArgumentException(archive + " does not exist");
-        }
         return new ArchivePathTree(archive);
     }
 

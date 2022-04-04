@@ -10,7 +10,6 @@ import java.util.Map;
 import io.quarkus.arc.InjectableBean;
 import io.quarkus.arc.deployment.ArcConfig;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem;
-import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
 import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.arc.processor.BuildExtension;
 import io.quarkus.arc.processor.DecoratorInfo;
@@ -31,10 +30,8 @@ public class ArcDevProcessor {
     @BuildStep(onlyIf = IsDevelopment.class)
     void registerRoutes(ArcConfig arcConfig, ArcDevRecorder recorder,
             BuildProducer<RouteBuildItem> routes,
-            BuildProducer<NotFoundPageDisplayableEndpointBuildItem> displayableEndpoints,
             NonApplicationRootPathBuildItem nonApplicationRootPathBuildItem,
-            ValidationPhaseBuildItem validationPhase,
-            BuildProducer<ValidationErrorBuildItem> errors) {
+            ValidationPhaseBuildItem validationPhase) {
 
         List<BeanInfo> removed = new ArrayList<>();
         Collection<InterceptorInfo> removedInterceptors = validationPhase.getContext()

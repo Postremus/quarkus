@@ -15,6 +15,7 @@ import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.ShutdownContext;
 import io.quarkus.runtime.annotations.Recorder;
 import io.quarkus.vertx.http.runtime.HttpConfiguration;
+import io.smallrye.openapi.spi.OASFactoryResolverImpl;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
@@ -83,7 +84,7 @@ public class OpenApiRecorder {
                     return cl.getResourceAsStream(name);
                 }
             });
-            OASFactoryResolver.instance();
+            OASFactoryResolver.setInstance(new OASFactoryResolverImpl());
         } finally {
             Thread.currentThread().setContextClassLoader(cl);
         }

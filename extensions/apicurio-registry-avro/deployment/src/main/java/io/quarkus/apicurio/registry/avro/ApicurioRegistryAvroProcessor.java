@@ -22,8 +22,7 @@ public class ApicurioRegistryAvroProcessor {
     }
 
     @BuildStep
-    public void apicurioRegistryAvro(BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
-            BuildProducer<ExtensionSslNativeSupportBuildItem> sslNativeSupport) {
+    public void apicurioRegistryAvro(BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
 
         reflectiveClass.produce(new ReflectiveClassBuildItem(true, true, false,
                 "io.apicurio.registry.serde.avro.AvroKafkaDeserializer",

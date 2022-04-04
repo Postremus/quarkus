@@ -272,7 +272,9 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
             List<CompilationProvider> compilationProviders = new ArrayList<>();
             for (CompilationProvider provider : serviceLoader) {
                 compilationProviders.add(provider);
-                context.getAllModules().forEach(moduleInfo -> moduleInfo.addSourcePaths(provider.handledSourcePaths()));
+                for (DevModeContext.ModuleInfo moduleInfo : context.getAllModules()) {
+                    moduleInfo.addSourcePaths(provider.handledSourcePaths());
+                }
             }
             QuarkusCompiler compiler = new QuarkusCompiler(curatedApplication, compilationProviders, context);
             TestSupport testSupport = null;

@@ -7,7 +7,6 @@ import java.util.Collections;
 
 import io.quarkus.builder.BuildException;
 import io.quarkus.deployment.IsNormal;
-import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.pkg.builditem.ArtifactResultBuildItem;
 import io.quarkus.deployment.pkg.builditem.JarBuildItem;
@@ -24,7 +23,7 @@ public class CloudFunctionDeploymentBuildStep {
     }
 
     @BuildStep(onlyIf = NativeSourcesBuild.class)
-    void failForNativeSources(BuildProducer<ArtifactResultBuildItem> artifactResultProducer) {
+    void failForNativeSources() {
         throw new IllegalArgumentException(
                 "The Google Cloud extensions are incompatible with the 'native-sources' package type.");
     }

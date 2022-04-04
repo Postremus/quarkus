@@ -35,7 +35,7 @@ public class UndertowStaticResourcesBuildStep {
 
     @BuildStep
     void handleGeneratedWebResources(Capabilities capabilities, BuildProducer<GeneratedResourceBuildItem> generatedResources,
-            List<GeneratedWebResourceBuildItem> generatedWebResources) throws Exception {
+            List<GeneratedWebResourceBuildItem> generatedWebResources) {
         if (!capabilities.isPresent(Capability.SERVLET)) {
             return;
         }
@@ -47,7 +47,6 @@ public class UndertowStaticResourcesBuildStep {
 
     @BuildStep
     void scanStaticResources(Capabilities capabilities, ApplicationArchivesBuildItem applicationArchivesBuildItem,
-            BuildProducer<GeneratedResourceBuildItem> generatedResources,
             BuildProducer<KnownPathsBuildItem> knownPathsBuilds,
             List<GeneratedWebResourceBuildItem> generatedWebResources,
             LaunchModeBuildItem launchModeBuildItem) throws Exception {

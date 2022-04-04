@@ -198,7 +198,8 @@ public final class BuildTimeConfigurationReader {
 
     private static void processClassFields(final ClassDefinition.Builder builder, final Class<?> clazz,
             final Map<Class<?>, GroupDefinition> groups) {
-        for (Field field : clazz.getDeclaredFields()) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
             int mods = field.getModifiers();
             if (Modifier.isStatic(mods)) {
                 continue;

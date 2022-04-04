@@ -16,7 +16,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.builder.item.SimpleBuildItem;
 import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.Capabilities;
@@ -28,9 +27,7 @@ import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeBuild;
 import io.quarkus.runtime.util.ClassPathUtils;
-import io.quarkus.vertx.core.deployment.CoreVertxBuildItem;
 import io.quarkus.vertx.http.deployment.spi.AdditionalStaticResourceBuildItem;
-import io.quarkus.vertx.http.runtime.HttpConfiguration;
 import io.quarkus.vertx.http.runtime.StaticResourcesRecorder;
 
 /**
@@ -124,8 +121,7 @@ public class StaticResourcesProcessor {
     @BuildStep
     @Record(RUNTIME_INIT)
     public void runtimeInit(Optional<io.quarkus.vertx.http.deployment.spi.StaticResourcesBuildItem> staticResources,
-            StaticResourcesRecorder recorder, CoreVertxBuildItem vertx, BeanContainerBuildItem beanContainer,
-            BuildProducer<DefaultRouteBuildItem> defaultRoutes, HttpConfiguration config) {
+            StaticResourcesRecorder recorder, BuildProducer<DefaultRouteBuildItem> defaultRoutes) {
         if (staticResources.isPresent()) {
             defaultRoutes.produce(new DefaultRouteBuildItem(recorder.start(staticResources.get().getPaths())));
         }
