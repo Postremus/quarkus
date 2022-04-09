@@ -5,7 +5,9 @@ import io.quarkus.paths.OpenPathTree;
 import io.quarkus.paths.PathTree;
 import io.quarkus.paths.PathVisit;
 import io.quarkus.paths.PathVisitor;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
@@ -238,19 +240,19 @@ public class PathTreeClassPathElement extends AbstractClassPathElement {
         }
 
         @Override
-        public byte[] getData() {
+        public InputStream getStream() {
             lock.readLock().lock();
             try {
                 if (pathTree.isOpen()) {
                     try {
                         try {
-                            return Files.readAllBytes(path);
+                            return Files.newInputStream(path);
                         } catch (InterruptedIOException e) {
                             // if we are interrupted reading data we finish the op, then just re-interrupt
                             // the thread state
-                            byte[] bytes = Files.readAllBytes(path);
+                            InputStream stream = Files.newInputStream(path);
                             Thread.currentThread().interrupt();
-                            return bytes;
+                            return stream;
                         } catch (ClosedChannelException e) {
                             // This could happen in tests or dev mode when the application is being terminated
                             // while some threads are still trying to load classes.
@@ -294,7 +296,8 @@ public class PathTreeClassPathElement extends AbstractClassPathElement {
                             return null;
                         }
                         try {
-                            return Files.readAllBytes(visit.getPath());
+                            byte[] data = Files.readAllBytes(visit.getPath());
+                            return new ByteArrayInputStream(data);
                         } catch (IOException e) {
                             throw new RuntimeException("Unable to read " + name, e);
                         }
@@ -306,6 +309,15 @@ public class PathTreeClassPathElement extends AbstractClassPathElement {
                 }
             } finally {
                 lock.readLock().unlock();
+            }
+        }
+
+        @Override
+        public byte[] getData() {
+            try {
+                return getStream().readAllBytes();
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to read " + name, e);
             }
         }
 

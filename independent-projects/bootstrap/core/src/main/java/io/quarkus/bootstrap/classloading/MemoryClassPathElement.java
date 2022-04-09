@@ -98,6 +98,11 @@ public class MemoryClassPathElement extends AbstractClassPathElement {
             }
 
             @Override
+            public InputStream getStream() {
+                return new ByteArrayInputStream(getData());
+            }
+
+            @Override
             public boolean isDirectory() {
                 return false;
             }

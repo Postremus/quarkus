@@ -1,6 +1,5 @@
 package io.quarkus.bootstrap.classloading;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -365,7 +364,7 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
         if (name.endsWith(".class")) {
             ClassPathElement[] providers = state.loadableResources.get(name);
             if (providers != null) {
-                return new ByteArrayInputStream(providers[0].getResource(name).getData());
+                return providers[0].getResource(name).getStream();
             }
         } else {
             for (ClassPathElement i : elements) {
@@ -382,7 +381,7 @@ public class QuarkusClassLoader extends ClassLoader implements Closeable {
                             continue;
                         }
                     }
-                    return new ByteArrayInputStream(res.getData());
+                    return res.getStream();
                 }
             }
         }

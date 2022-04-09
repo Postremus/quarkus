@@ -1,5 +1,6 @@
 package io.quarkus.bootstrap.classloading;
 
+import java.io.InputStream;
 import java.net.URL;
 
 /**
@@ -29,6 +30,8 @@ public interface ClassPathResource {
      * @return The resource data
      */
     byte[] getData();
+
+    InputStream getStream();
 
     /**
      *

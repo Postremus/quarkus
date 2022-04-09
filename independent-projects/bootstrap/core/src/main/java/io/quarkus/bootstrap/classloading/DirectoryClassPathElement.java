@@ -4,6 +4,7 @@ import io.quarkus.paths.DirectoryPathTree;
 import io.quarkus.paths.OpenPathTree;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -114,13 +115,22 @@ public class DirectoryClassPathElement extends AbstractClassPathElement {
                 @Override
                 public byte[] getData() {
                     try {
+                        return getStream().readAllBytes();
+                    } catch (IOException e) {
+                        throw new RuntimeException("Unable to read " + file, e);
+                    }
+                }
+
+                @Override
+                public InputStream getStream() {
+                    try {
                         try {
-                            return Files.readAllBytes(file);
+                            return Files.newInputStream(file);
                         } catch (InterruptedIOException e) {
                             //if we are interrupted reading data we finish the op, then just re-interrupt the thread state
-                            byte[] bytes = Files.readAllBytes(file);
+                            InputStream stream = Files.newInputStream(file);
                             Thread.currentThread().interrupt();
-                            return bytes;
+                            return stream;
                         }
                     } catch (IOException e) {
                         throw new RuntimeException("Unable to read " + file, e);

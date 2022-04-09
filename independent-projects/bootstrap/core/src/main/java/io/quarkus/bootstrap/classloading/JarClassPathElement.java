@@ -4,6 +4,7 @@ import io.quarkus.paths.OpenPathTree;
 import io.quarkus.paths.PathTree;
 import io.smallrye.common.io.jar.JarEntries;
 import io.smallrye.common.io.jar.JarFiles;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -180,6 +181,11 @@ public class JarClassPathElement implements ClassPathElement {
                                     throw new RuntimeException("Unable to read " + name, e.getCause());
                                 }
                             }
+                        }
+
+                        @Override
+                        public InputStream getStream() {
+                            return new ByteArrayInputStream(getData());
                         }
 
                         @Override
