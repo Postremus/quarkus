@@ -30,7 +30,7 @@
     <!-- insert test dependencies here -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy</artifactId>
+      <artifactId>quarkus-resteasy-reactive</artifactId>
     </dependency>
   </dependencies>
   <build>
