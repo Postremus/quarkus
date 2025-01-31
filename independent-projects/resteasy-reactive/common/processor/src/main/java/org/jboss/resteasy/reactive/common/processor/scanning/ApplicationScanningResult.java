@@ -5,22 +5,23 @@ import java.util.Set;
 import jakarta.ws.rs.core.Application;
 
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 import org.jboss.resteasy.reactive.common.processor.BlockingDefault;
 import org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames;
 
 public final class ApplicationScanningResult {
 
-    final Set<String> allowedClasses;
-    final Set<String> singletonClasses;
-    final Set<String> excludedClasses;
-    final Set<String> globalNameBindings;
+    final Set<DotName> allowedClasses;
+    final Set<DotName> singletonClasses;
+    final Set<DotName> excludedClasses;
+    final Set<DotName> globalNameBindings;
     final boolean filterClasses;
     final Application application;
     final ClassInfo selectedAppClass;
     final BlockingDefault blocking;
 
-    public ApplicationScanningResult(Set<String> allowedClasses, Set<String> singletonClasses, Set<String> excludedClasses,
-            Set<String> globalNameBindings, boolean filterClasses, Application application,
+    public ApplicationScanningResult(Set<DotName> allowedClasses, Set<DotName> singletonClasses, Set<DotName> excludedClasses,
+            Set<DotName> globalNameBindings, boolean filterClasses, Application application,
             ClassInfo selectedAppClass, BlockingDefault blocking) {
         this.allowedClasses = allowedClasses;
         this.singletonClasses = singletonClasses;
@@ -36,12 +37,12 @@ public final class ApplicationScanningResult {
         if (filterClasses) {
             if (allowedClasses.isEmpty()) {
                 // we have only classes to exclude
-                if (excludedClasses.contains(providerClass.name().toString())) {
+                if (excludedClasses.contains(providerClass.name())) {
                     return KeepProviderResult.DISCARD;
                 }
             } else {
                 // we don't care about provider annotations, they're manually registered (but for the server only)
-                return allowedClasses.contains(providerClass.name().toString()) ? KeepProviderResult.SERVER_ONLY
+                return allowedClasses.contains(providerClass.name()) ? KeepProviderResult.SERVER_ONLY
                         : KeepProviderResult.DISCARD;
             }
         }
@@ -49,7 +50,7 @@ public final class ApplicationScanningResult {
                 : KeepProviderResult.DISCARD;
     }
 
-    public boolean keepClass(String className) {
+    public boolean keepClass(DotName className) {
         if (filterClasses) {
             if (allowedClasses.isEmpty()) {
                 // we have only classes to exclude
@@ -60,19 +61,19 @@ public final class ApplicationScanningResult {
         return true;
     }
 
-    public Set<String> getAllowedClasses() {
+    public Set<DotName> getAllowedClasses() {
         return allowedClasses;
     }
 
-    public Set<String> getExcludedClasses() {
+    public Set<DotName> getExcludedClasses() {
         return excludedClasses;
     }
 
-    public Set<String> getSingletonClasses() {
+    public Set<DotName> getSingletonClasses() {
         return singletonClasses;
     }
 
-    public Set<String> getGlobalNameBindings() {
+    public Set<DotName> getGlobalNameBindings() {
         return globalNameBindings;
     }
 

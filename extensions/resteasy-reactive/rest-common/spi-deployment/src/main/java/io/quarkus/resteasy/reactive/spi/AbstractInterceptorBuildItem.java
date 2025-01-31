@@ -5,13 +5,14 @@ import java.util.Objects;
 import java.util.Set;
 
 import io.quarkus.builder.item.MultiBuildItem;
+import org.jboss.jandex.DotName;
 
 public abstract class AbstractInterceptorBuildItem extends MultiBuildItem implements CheckBean {
 
     private final String className;
     private final Integer priority;
     private final boolean registerAsBean;
-    private final Set<String> nameBindingNames;
+    private final Set<DotName> nameBindingNames;
 
     protected AbstractInterceptorBuildItem(Builder<?, ?> builder) {
         this.className = builder.className;
@@ -35,7 +36,7 @@ public abstract class AbstractInterceptorBuildItem extends MultiBuildItem implem
         return priority;
     }
 
-    public Set<String> getNameBindingNames() {
+    public Set<DotName> getNameBindingNames() {
         return nameBindingNames;
     }
 
@@ -49,7 +50,7 @@ public abstract class AbstractInterceptorBuildItem extends MultiBuildItem implem
 
         private Integer priority;
         private boolean registerAsBean = true;
-        private Set<String> nameBindingNames = Collections.emptySet();
+        private Set<DotName> nameBindingNames = Collections.emptySet();
 
         public Builder(String className) {
             this.className = className;
@@ -65,7 +66,7 @@ public abstract class AbstractInterceptorBuildItem extends MultiBuildItem implem
             return (B) this;
         }
 
-        public B setNameBindingNames(Set<String> nameBindingNames) {
+        public B setNameBindingNames(Set<DotName> nameBindingNames) {
             Objects.requireNonNull(nameBindingNames);
             this.nameBindingNames = nameBindingNames;
             return (B) this;

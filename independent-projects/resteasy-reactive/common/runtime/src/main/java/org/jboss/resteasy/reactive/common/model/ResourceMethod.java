@@ -7,6 +7,7 @@ import java.util.Set;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Produces;
 
+import org.jboss.jandex.DotName;
 import org.jboss.resteasy.reactive.RestSseElementType;
 import org.jboss.resteasy.reactive.RestStreamElementType;
 
@@ -49,7 +50,7 @@ public class ResourceMethod {
      * The class names of the {@code @NameBinding} annotations that the method is annotated with.
      * If none is specified on the method then this represents the value inherited from the class level.
      */
-    private Set<String> nameBindingNames = Collections.emptySet();
+    private Set<DotName> nameBindingNames = Collections.emptySet();
 
     private String name;
 
@@ -78,7 +79,8 @@ public class ResourceMethod {
     }
 
     public ResourceMethod(String httpMethod, String path, String[] produces, String streamElementType, String[] consumes,
-            Set<String> nameBindingNames, String name, String returnType, String simpleReturnType, MethodParameter[] parameters,
+            Set<DotName> nameBindingNames, String name, String returnType, String simpleReturnType,
+            MethodParameter[] parameters,
             boolean blocking, boolean suspended, boolean isSse, boolean isFormParamRequired,
             List<ResourceMethod> subResourceMethods, boolean encoded) {
         this.httpMethod = httpMethod;
@@ -139,11 +141,11 @@ public class ResourceMethod {
         return this;
     }
 
-    public Set<String> getNameBindingNames() {
+    public Set<DotName> getNameBindingNames() {
         return nameBindingNames;
     }
 
-    public ResourceMethod setNameBindingNames(Set<String> nameBindingNames) {
+    public ResourceMethod setNameBindingNames(Set<DotName> nameBindingNames) {
         this.nameBindingNames = nameBindingNames;
         return this;
     }

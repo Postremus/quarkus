@@ -418,29 +418,18 @@ public final class JandexUtil {
     }
 
     public static boolean isAssignableFrom(DotName superType, DotName subType, IndexView index) {
-        // java.lang.Object is assignable from any type
-        if (superType.equals(DOTNAME_OBJECT)) {
-            return true;
-        }
-        // type1 is the same as type2
-        if (superType.equals(subType)) {
-            return true;
-        }
-        // type1 is a superclass
-        return findSupertypes(subType, index).contains(superType);
-    }
-
-    private static Set<DotName> findSupertypes(DotName name, IndexView index) {
-        Set<DotName> result = new HashSet<>();
-
+        Set<DotName> seen = new HashSet<>();
+        seen.add(DOTNAME_OBJECT);
         Deque<DotName> workQueue = new ArrayDeque<>();
-        workQueue.add(name);
+        workQueue.add(subType);
         while (!workQueue.isEmpty()) {
             DotName type = workQueue.poll();
-            if (result.contains(type)) {
+            if (!seen.add(type)) {
                 continue;
             }
-            result.add(type);
+            if (type.equals(superType)) {
+                return true;
+            }
 
             ClassInfo clazz = index.getClassByName(type);
             if (clazz == null) {
@@ -452,7 +441,6 @@ public final class JandexUtil {
             workQueue.addAll(clazz.interfaceNames());
         }
 
-        return result;
+        return false;
     }
-
 }

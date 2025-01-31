@@ -933,10 +933,15 @@ public class BeanInfo implements InjectionTargetInfo {
     // when the original class has a binding of the same type)
     private void doAddClassLevelBindings(ClassInfo classInfo, Collection<AnnotationInstance> bindings, Set<DotName> skip,
             boolean onlyInherited) {
-        beanDeployment.getAnnotations(classInfo).stream()
-                .flatMap(a -> beanDeployment.extractInterceptorBindings(a, onlyInherited).stream())
-                .filter(a -> !skip.contains(a.name()))
-                .forEach(bindings::add);
+        for (AnnotationInstance annotation : beanDeployment.getAnnotations(classInfo)) {
+            Collection<AnnotationInstance> annotationInstances = beanDeployment.extractInterceptorBindings(annotation,
+                    onlyInherited);
+            for (AnnotationInstance annotationInstance : annotationInstances) {
+                if (!skip.contains(annotationInstance.name())) {
+                    bindings.add(annotationInstance);
+                }
+            }
+        }
         if (classInfo.superClassType() != null && !classInfo.superClassType().name().equals(DotNames.OBJECT)) {
             ClassInfo superClass = getClassByName(beanDeployment.getBeanArchiveIndex(), classInfo.superName());
             if (superClass != null) {

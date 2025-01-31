@@ -145,8 +145,8 @@ public class KeycloakDevServicesProcessor {
             DevServicesConfig devServicesConfig, DockerStatusBuildItem dockerStatusBuildItem) {
 
         if (devSvcRequiredMarkerItems.isEmpty()
-                || linuxContainersNotAvailable(dockerStatusBuildItem, devSvcRequiredMarkerItems)
-                || oidcDevServicesEnabled()) {
+                || !oidcDevServicesEnabled()
+                || linuxContainersNotAvailable(dockerStatusBuildItem, devSvcRequiredMarkerItems)) {
             if (devService != null) {
                 closeDevService();
             }

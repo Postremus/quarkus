@@ -105,7 +105,7 @@ public class ResteasyReactiveDeploymentManager {
 
         private Map<DotName, ClassInfo> additionalResources = new HashMap<>();
         private Map<DotName, String> additionalResourcePaths = new HashMap<>();
-        private Set<String> excludedClasses = new HashSet<>();
+        private Set<DotName> excludedClasses = new HashSet<>();
         private Set<DotName> contextTypes = new HashSet<>();
         private String applicationPath;
         private final List<MethodScanner> methodScanners = new ArrayList<>();

@@ -39,7 +39,7 @@ public class FilterGeneration {
             boolean nonBlockingRequired = false;
             boolean readBody = false;
             boolean withFormRead = methodInfo.hasAnnotation(ResteasyReactiveServerDotNames.WITH_FORM_READ);
-            Set<String> nameBindingNames = new HashSet<>();
+            Set<DotName> nameBindingNames = new HashSet<>();
 
             AnnotationValue priorityValue = instance.value("priority");
             if (priorityValue != null) {
@@ -82,7 +82,7 @@ public class FilterGeneration {
                     continue;
                 }
                 if ((annotationClassInfo.declaredAnnotation(ResteasyReactiveDotNames.NAME_BINDING) != null)) {
-                    nameBindingNames.add(annotationDotName.toString());
+                    nameBindingNames.add(annotationDotName);
                 }
             }
 
@@ -96,7 +96,7 @@ public class FilterGeneration {
             }
             MethodInfo methodInfo = instance.target().asMethod();
             Integer priority = null;
-            Set<String> nameBindingNames = new HashSet<>();
+            Set<DotName> nameBindingNames = new HashSet<>();
             GeneratedClassOutput output = new GeneratedClassOutput();
             String generatedClassName = new CustomFilterGenerator(unwrappableTypes, additionalBeanAnnotations,
                     isOptionalFilter)
@@ -117,7 +117,7 @@ public class FilterGeneration {
                     continue;
                 }
                 if ((annotationClassInfo.declaredAnnotation(ResteasyReactiveDotNames.NAME_BINDING) != null)) {
-                    nameBindingNames.add(annotationDotName.toString());
+                    nameBindingNames.add(annotationDotName);
                 }
             }
 
@@ -136,7 +136,7 @@ public class FilterGeneration {
         final Integer priority;
         final boolean preMatching;
         final boolean nonBlocking;
-        final Set<String> nameBindingNames;
+        final Set<DotName> nameBindingNames;
         final boolean withFormRead;
 
         final MethodInfo filterSourceMethod;
@@ -144,7 +144,7 @@ public class FilterGeneration {
         public GeneratedFilter(List<GeneratedClass> generatedClasses, String generatedClassName,
                 String declaringClassName,
                 boolean requestFilter, Integer priority, boolean preMatching, boolean nonBlocking,
-                Set<String> nameBindingNames, boolean withFormRead, MethodInfo filterSourceMethod) {
+                Set<DotName> nameBindingNames, boolean withFormRead, MethodInfo filterSourceMethod) {
             this.generatedClasses = generatedClasses;
             this.generatedClassName = generatedClassName;
             this.declaringClassName = declaringClassName;
@@ -185,7 +185,7 @@ public class FilterGeneration {
             return generatedClasses;
         }
 
-        public Set<String> getNameBindingNames() {
+        public Set<DotName> getNameBindingNames() {
             return nameBindingNames;
         }
 

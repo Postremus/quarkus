@@ -71,12 +71,12 @@ public class ResteasyReactiveScanner {
             "PATCH", PATCH,
             "OPTIONS", OPTIONS);
 
-    public static ApplicationScanningResult scanForApplicationClass(IndexView index, Set<String> excludedClasses) {
+    public static ApplicationScanningResult scanForApplicationClass(IndexView index, Set<DotName> excludedClasses) {
         Collection<ClassInfo> applications = index
                 .getAllKnownSubclasses(ResteasyReactiveDotNames.APPLICATION);
-        Set<String> allowedClasses = new HashSet<>();
-        Set<String> singletonClasses = new HashSet<>();
-        Set<String> globalNameBindings = new HashSet<>();
+        Set<DotName> allowedClasses = new HashSet<>();
+        Set<DotName> singletonClasses = new HashSet<>();
+        Set<DotName> globalNameBindings = new HashSet<>();
         boolean filterClasses = !excludedClasses.isEmpty();
         Application application = null;
         ClassInfo selectedAppClass = null;
@@ -85,7 +85,7 @@ public class ResteasyReactiveScanner {
             if (Modifier.isAbstract(applicationClassInfo.flags())) {
                 continue;
             }
-            if (excludedClasses.contains(applicationClassInfo.name().toString())) {
+            if (excludedClasses.contains(applicationClassInfo.name())) {
                 continue;
             }
             if (selectedAppClass != null) {
@@ -103,15 +103,15 @@ public class ResteasyReactiveScanner {
                 Set<Class<?>> classes = application.getClasses();
                 if (!classes.isEmpty()) {
                     for (Class<?> klass : classes) {
-                        allowedClasses.add(klass.getName());
+                        allowedClasses.add(DotName.createSimple(klass));
                     }
                     filterClasses = true;
                 }
                 classes = application.getSingletons().stream().map(Object::getClass).collect(Collectors.toSet());
                 if (!classes.isEmpty()) {
                     for (Class<?> klass : classes) {
-                        allowedClasses.add(klass.getName());
-                        singletonClasses.add(klass.getName());
+                        allowedClasses.add(DotName.createSimple(klass));
+                        singletonClasses.add(DotName.createSimple(klass));
                     }
                     filterClasses = true;
                 }

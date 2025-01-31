@@ -230,7 +230,7 @@ public class ResteasyReactiveCommonProcessor {
             ((PreMatchInterceptorContainer<T>) interceptors).addPreMatchInterceptor(interceptor);
 
         } else {
-            Set<String> nameBindingNames = filterItem.getNameBindingNames();
+            Set<DotName> nameBindingNames = filterItem.getNameBindingNames();
             if (nameBindingNames.isEmpty() || namePresent(nameBindingNames, globalNameBindings)) {
                 interceptors.addGlobalRequestInterceptor(interceptor);
             } else {

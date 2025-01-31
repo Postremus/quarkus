@@ -165,7 +165,7 @@ public class IdeProcessor {
         Set<Ide> result = EnumSet.noneOf(Ide.class);
         List<ProcessInfo> processInfos = Collections.emptyList();
         try {
-            processInfos = ProcessUtil.runningProcesses();
+            //processInfos = ProcessUtil.runningProcesses();
         } catch (Exception e) {
             // this shouldn't be a terminal failure, so just log it to the console
             log.warn(e.getMessage());

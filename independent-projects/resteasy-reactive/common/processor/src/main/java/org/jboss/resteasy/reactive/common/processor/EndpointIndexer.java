@@ -67,7 +67,6 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_RESPONSE;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_SSE_ELEMENT_TYPE;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.REST_STREAM_ELEMENT_TYPE;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.RUN_ON_VIRTUAL_THREAD;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SECURITY_CONTEXT;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SERVER_REQUEST_CONTEXT;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SET;
@@ -76,7 +75,6 @@ import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNa
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SSE_EVENT_SINK;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.SUSPENDED;
-import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.TRANSACTIONAL;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.UNI;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.URI_INFO;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.YEAR;
@@ -133,7 +131,6 @@ import org.jboss.resteasy.reactive.common.model.MethodParameter;
 import org.jboss.resteasy.reactive.common.model.ParameterType;
 import org.jboss.resteasy.reactive.common.model.ResourceClass;
 import org.jboss.resteasy.reactive.common.model.ResourceMethod;
-import org.jboss.resteasy.reactive.common.processor.TargetJavaVersion.Status;
 import org.jboss.resteasy.reactive.common.processor.scanning.ApplicationScanningResult;
 import org.jboss.resteasy.reactive.common.processor.scanning.ResteasyReactiveScanner;
 import org.jboss.resteasy.reactive.common.processor.scanning.ScannedSerializer;
@@ -276,7 +273,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     public Optional<ResourceClass> createEndpoints(ClassInfo classInfo, boolean considerApplication) {
-        if (considerApplication && !applicationScanningResult.keepClass(classInfo.name().toString())) {
+        if (considerApplication && !applicationScanningResult.keepClass(classInfo.name())) {
             return Optional.empty();
         }
         try {
@@ -389,7 +386,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             Map<String, Object> methodContext);
 
     protected List<ResourceMethod> createEndpoints(ClassInfo currentClassInfo,
-            ClassInfo actualEndpointInfo, Set<String> seenMethods, Set<String> existingClassNameBindings,
+            ClassInfo actualEndpointInfo, Set<String> seenMethods, Set<DotName> existingClassNameBindings,
             Set<String> pathParameters, String resourceClassPath, boolean considerApplication) {
 
         List<ResourceMethod> ret = new ArrayList<>();
@@ -448,12 +445,12 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private static List<FoundEndpoint> collectEndpoints(ClassInfo currentClassInfo, ClassInfo actualEndpointInfo,
-            Set<String> seenMethods, Set<String> existingClassNameBindings, boolean considerApplication,
+            Set<String> seenMethods, Set<DotName> existingClassNameBindings, boolean considerApplication,
             Map<DotName, String> httpAnnotationToMethod, IndexView index, ApplicationScanningResult applicationScanningResult,
             AnnotationStore annotationStore) {
 
         if (considerApplication && applicationScanningResult != null
-                && !applicationScanningResult.keepClass(actualEndpointInfo.name().toString())) {
+                && !applicationScanningResult.keepClass(actualEndpointInfo.name())) {
             return Collections.emptyList();
         }
 
@@ -463,16 +460,19 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         }
 
         List<FoundEndpoint> ret = new ArrayList<>();
-        Set<String> classNameBindings = NameBindingUtil.nameBindingNames(index, currentClassInfo);
+        Set<DotName> classNameBindings = NameBindingUtil.nameBindingNames(index, currentClassInfo);
         if (classNameBindings.isEmpty()) {
             classNameBindings = existingClassNameBindings;
         }
 
-        for (DotName httpMethod : httpAnnotationToMethod.keySet()) {
-            List<MethodInfo> methods = currentClassInfo.methods();
-            for (MethodInfo info : methods) {
-                AnnotationInstance annotation = annotationStore.getAnnotation(info, httpMethod);
-                if (annotation != null) {
+        //now resource locator methods
+        List<MethodInfo> methods = currentClassInfo.methods();
+        for (MethodInfo info : methods) {
+            Collection<AnnotationInstance> annotations = annotationStore.getAnnotations(info);
+            boolean isHttpMethod = false;
+            for (AnnotationInstance annotation : annotations) {
+                isHttpMethod = httpAnnotationToMethod.containsKey(annotation.name());
+                if (isHttpMethod) {
                     if (!hasProperModifiers(info)) {
                         continue;
                     }
@@ -481,25 +481,24 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                         continue;
                     }
                     seenMethods.add(descriptor);
-                    ret.add(new FoundEndpoint(currentClassInfo, classNameBindings, info, httpMethod));
+                    ret.add(new FoundEndpoint(currentClassInfo, classNameBindings, info, annotation.name()));
                 }
             }
-        }
 
-        //now resource locator methods
-        List<MethodInfo> methods = currentClassInfo.methods();
-        for (MethodInfo info : methods) {
-            AnnotationInstance annotation = annotationStore.getAnnotation(info, PATH);
-            if (annotation != null) {
-                if (!hasProperModifiers(info)) {
-                    continue;
+            if (!isHttpMethod) {
+                for (AnnotationInstance annotation : annotations) {
+                    if (annotation.name().equals(PATH)) {
+                        if (!hasProperModifiers(info)) {
+                            continue;
+                        }
+                        String descriptor = methodDescriptor(info);
+                        if (seenMethods.contains(descriptor)) {
+                            continue;
+                        }
+                        seenMethods.add(descriptor);
+                        ret.add(new FoundEndpoint(currentClassInfo, classNameBindings, info, null));
+                    }
                 }
-                String descriptor = methodDescriptor(info);
-                if (seenMethods.contains(descriptor)) {
-                    continue;
-                }
-                seenMethods.add(descriptor);
-                ret.add(new FoundEndpoint(currentClassInfo, classNameBindings, info, null));
             }
         }
 
@@ -571,7 +570,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private ResourceMethod createResourceMethod(ClassInfo currentClassInfo, ClassInfo actualEndpointInfo,
-            BasicResourceClassInfo basicResourceClassInfo, Set<String> classNameBindings, DotName httpMethod,
+            BasicResourceClassInfo basicResourceClassInfo, Set<DotName> classNameBindings, DotName httpMethod,
             MethodInfo currentMethodInfo, String methodPath) {
         try {
             Map<String, Object> methodContext = new HashMap<>();
@@ -583,17 +582,29 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
             for (int paramPos = 0; paramPos < currentMethodInfo.parametersCount(); ++paramPos) {
                 parameterAnnotations[paramPos] = new HashMap<>();
             }
+            String[] consumes = null;
+            String[] produces = null;
+            boolean formParamRequired = false;
             for (AnnotationInstance i : getAnnotationStore().getAnnotations(currentMethodInfo)) {
                 if (i.target().kind() == AnnotationTarget.Kind.METHOD_PARAMETER) {
                     parameterAnnotations[i.target().asMethodParameter().position()].put(i.name(), i);
                 }
+                if (consumes == null && i.name().equals(CONSUMES)) {
+                    consumes = extractProducesConsumesValues(i,
+                            basicResourceClassInfo.getConsumes());
+                }
+                if (produces == null && i.name().equals(PRODUCES)) {
+                    produces = extractProducesConsumesValues(i);
+                }
+                if (!formParamRequired && i.name().equals(ResteasyReactiveDotNames.WITH_FORM_READ)) {
+                    formParamRequired = true;
+                }
             }
-            String[] consumes = extractProducesConsumesValues(getAnnotationStore().getAnnotation(currentMethodInfo, CONSUMES),
-                    basicResourceClassInfo.getConsumes());
+            if (consumes == null) {
+                consumes = basicResourceClassInfo.getConsumes();
+            }
             boolean suspended = false;
             boolean sse = false;
-            boolean formParamRequired = getAnnotationStore().getAnnotation(currentMethodInfo,
-                    ResteasyReactiveDotNames.WITH_FORM_READ) != null;
             Set<String> fileFormNames = new HashSet<>();
             Type bodyParamType = null;
             TypeArgMapper typeArgMapper = new TypeArgMapper(currentMethodInfo.declaringClass(), index);
@@ -704,7 +715,6 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                 streamElementType = streamElementTypeInMethod;
             }
 
-            String[] produces = extractProducesConsumesValues(getAnnotationStore().getAnnotation(currentMethodInfo, PRODUCES));
             if (((produces == null) || (produces.length == 0)) && (streamElementType != null)) {
                 // when @RestStreamElementType is used, we automatically determine SSE as the @Produces MediaType
                 produces = new String[] { MediaType.SERVER_SENT_EVENTS };
@@ -739,7 +749,7 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
                             multipartClassInfo, index);
                 }
             }
-            Set<String> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
+            Set<DotName> nameBindingNames = nameBindingNames(currentMethodInfo, classNameBindings);
             boolean blocking = isBlocking(currentMethodInfo, defaultBlocking);
             boolean runOnVirtualThread = isRunOnVirtualThread(currentMethodInfo, blocking, defaultBlocking);
             // we want to allow "overriding" the blocking/non-blocking setting from an implementation class
@@ -855,75 +865,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
     }
 
     private boolean isRunOnVirtualThread(MethodInfo info, boolean blocking, BlockingDefault defaultValue) {
-        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
-                RUN_ON_VIRTUAL_THREAD);
-
-        if (runOnVirtualThreadAnnotation != null) {
-            if (!JDK_SUPPORTS_VIRTUAL_THREADS) {
-                throw new DeploymentException("Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                        + "' uses @RunOnVirtualThread but the JDK version '" + Runtime.version() +
-                        "' and doesn't support virtual threads");
-            }
-            if (targetJavaVersion.isJava19OrHigher() == Status.FALSE) {
-                throw new DeploymentException("Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                        + "' uses @RunOnVirtualThread but the target JDK version doesn't support virtual threads. Please configure your build tool to target Java 19 or above");
-            }
-            if (!blocking) {
-                throw new DeploymentException(
-                        "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                + "' is considered a non blocking method. @RunOnVirtualThread can only be used on " +
-                                " methods considered blocking");
-            } else {
-                return true;
-            }
-        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
-            return true;
-        } else {
-            return false;
-        }
+        return false;
     }
 
     private boolean isBlocking(MethodInfo info, BlockingDefault defaultValue) {
-        Map.Entry<AnnotationTarget, AnnotationInstance> blockingAnnotation = getInheritableAnnotation(info, BLOCKING);
-        Map.Entry<AnnotationTarget, AnnotationInstance> runOnVirtualThreadAnnotation = getInheritableAnnotation(info,
-                RUN_ON_VIRTUAL_THREAD);
-        Map.Entry<AnnotationTarget, AnnotationInstance> nonBlockingAnnotation = getInheritableAnnotation(info,
-                NON_BLOCKING);
-
-        if ((blockingAnnotation != null) && (nonBlockingAnnotation != null)) {
-            if (blockingAnnotation.getKey().kind() == nonBlockingAnnotation.getKey().kind()) {
-                if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                    throw new DeploymentException(
-                            "Method '" + info.name() + "' of class '" + info.declaringClass().name()
-                                    + "' contains both @Blocking and @NonBlocking annotations.");
-                } else {
-                    throw new DeploymentException("Class '" + info.declaringClass().name()
-                            + "' contains both @Blocking and @NonBlocking annotations.");
-                }
-            }
-            if (blockingAnnotation.getKey().kind() == AnnotationTarget.Kind.METHOD) {
-                // the most specific annotation was the @Blocking annotation on the method
-                return true;
-            } else {
-                // the most specific annotation was the @NonBlocking annotation on the method
-                return false;
-            }
-        } else if ((blockingAnnotation != null)) {
-            return true;
-        } else if ((nonBlockingAnnotation != null)) {
-            return false;
-        }
-        Map.Entry<AnnotationTarget, AnnotationInstance> transactional = getInheritableAnnotation(info, TRANSACTIONAL); //we treat this the same as blocking, as JTA is blocking, but it is lower priority
-        if (defaultValue == BlockingDefault.BLOCKING) {
-            return true;
-        } else if (defaultValue == BlockingDefault.RUN_ON_VIRTUAL_THREAD) {
-            return false;
-        } else if (defaultValue == BlockingDefault.NON_BLOCKING) {
-            return false;
-        } else if (transactional != null) {
-            return true;
-        }
-        return doesMethodHaveBlockingSignature(info);
+        return true;
     }
 
     protected boolean doesMethodHaveBlockingSignature(MethodInfo info) {
@@ -1570,11 +1516,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
         return val != null && !val.isEmpty() ? val : defaultValue;
     }
 
-    public Set<String> nameBindingNames(ClassInfo selectedAppClass) {
+    public Set<DotName> nameBindingNames(ClassInfo selectedAppClass) {
         return NameBindingUtil.nameBindingNames(index, selectedAppClass);
     }
 
-    public Set<String> nameBindingNames(MethodInfo methodInfo, Set<String> forClass) {
+    public Set<DotName> nameBindingNames(MethodInfo methodInfo, Set<DotName> forClass) {
         return NameBindingUtil.nameBindingNames(index, methodInfo, forClass);
     }
 
@@ -1998,11 +1944,11 @@ public abstract class EndpointIndexer<T extends EndpointIndexer<T, PARAM, METHOD
 
     private static final class FoundEndpoint {
         private final ClassInfo classInfo;
-        private final Set<String> classNameBindings;
+        private final Set<DotName> classNameBindings;
         private final MethodInfo methodInfo;
         private final DotName httpMethod;
 
-        private FoundEndpoint(ClassInfo classInfo, Set<String> classNameBindings, MethodInfo methodInfo, DotName httpMethod) {
+        private FoundEndpoint(ClassInfo classInfo, Set<DotName> classNameBindings, MethodInfo methodInfo, DotName httpMethod) {
             this.classInfo = classInfo;
             this.classNameBindings = classNameBindings;
             this.methodInfo = methodInfo;

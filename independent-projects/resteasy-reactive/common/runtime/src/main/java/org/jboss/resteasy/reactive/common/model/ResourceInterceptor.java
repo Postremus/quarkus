@@ -7,6 +7,7 @@ import java.util.Set;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.RuntimeType;
 
+import org.jboss.jandex.DotName;
 import org.jboss.resteasy.reactive.spi.BeanFactory;
 
 public class ResourceInterceptor<T>
@@ -22,7 +23,7 @@ public class ResourceInterceptor<T>
     /**
      * The class names of the {@code @NameBinding} annotations that the method is annotated with.
      */
-    private Set<String> nameBindingNames = Collections.emptySet();
+    private Set<DotName> nameBindingNames = Collections.emptySet();
 
     private String className;
 
@@ -54,11 +55,11 @@ public class ResourceInterceptor<T>
         }
     }
 
-    public Set<String> getNameBindingNames() {
+    public Set<DotName> getNameBindingNames() {
         return nameBindingNames;
     }
 
-    public void setNameBindingNames(Set<String> nameBindingNames) {
+    public void setNameBindingNames(Set<DotName> nameBindingNames) {
         this.nameBindingNames = nameBindingNames;
     }
 

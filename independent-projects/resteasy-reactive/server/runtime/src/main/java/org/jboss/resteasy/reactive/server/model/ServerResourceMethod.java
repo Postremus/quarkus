@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.jboss.jandex.DotName;
 import org.jboss.resteasy.reactive.common.model.MethodParameter;
 import org.jboss.resteasy.reactive.common.model.ResourceMethod;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
@@ -25,7 +26,8 @@ public class ServerResourceMethod extends ResourceMethod {
     }
 
     public ServerResourceMethod(String httpMethod, String path, String[] produces, String streamElementType, String[] consumes,
-            Set<String> nameBindingNames, String name, String returnType, String simpleReturnType, MethodParameter[] parameters,
+            Set<DotName> nameBindingNames, String name, String returnType, String simpleReturnType,
+            MethodParameter[] parameters,
             boolean blocking, boolean suspended, boolean sse, boolean formParamRequired,
             List<ResourceMethod> subResourceMethods, Supplier<EndpointInvoker> invoker, Set<String> methodAnnotationNames,
             List<HandlerChainCustomizer> handlerChainCustomizers, ParameterExtractor customerParameterExtractor,

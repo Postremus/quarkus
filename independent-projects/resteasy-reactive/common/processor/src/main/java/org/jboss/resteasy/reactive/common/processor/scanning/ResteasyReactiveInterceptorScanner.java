@@ -17,6 +17,7 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.jandex.Type;
@@ -215,7 +216,7 @@ public class ResteasyReactiveInterceptorScanner {
                     && filterClass.declaredAnnotation(PRE_MATCHING) != null) {
                 ((PreMatchInterceptorContainer<T>) interceptorContainer).addPreMatchInterceptor(interceptor);
             } else {
-                Set<String> nameBindingNames = interceptor.getNameBindingNames();
+                Set<DotName> nameBindingNames = interceptor.getNameBindingNames();
                 if (nameBindingNames.isEmpty()
                         || namePresent(nameBindingNames, applicationResultBuildItem.getGlobalNameBindings())) {
                     interceptorContainer.addGlobalRequestInterceptor(interceptor);
@@ -241,8 +242,8 @@ public class ResteasyReactiveInterceptorScanner {
         return null;
     }
 
-    private static boolean namePresent(Set<String> nameBindingNames, Set<String> globalNameBindings) {
-        for (String i : globalNameBindings) {
+    private static boolean namePresent(Set<DotName> nameBindingNames, Set<DotName> globalNameBindings) {
+        for (DotName i : globalNameBindings) {
             if (nameBindingNames.contains(i)) {
                 return true;
             }

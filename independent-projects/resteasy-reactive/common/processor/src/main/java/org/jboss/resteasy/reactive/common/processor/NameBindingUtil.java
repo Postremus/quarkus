@@ -22,12 +22,12 @@ public class NameBindingUtil {
     /**
      * Returns the class names of the {@code @NameBinding} annotations or null if non are present
      */
-    public static Set<String> nameBindingNames(IndexView index, ClassInfo classInfo) {
+    public static Set<DotName> nameBindingNames(IndexView index, ClassInfo classInfo) {
         return nameBindingNames(index, instanceDotNames(classInfo.declaredAnnotations()));
     }
 
-    public static Set<String> nameBindingNames(IndexView index, MethodInfo methodInfo, Set<String> forClass) {
-        Set<String> fromMethod = nameBindingNames(index, instanceDotNames(methodInfo.annotations()));
+    public static Set<DotName> nameBindingNames(IndexView index, MethodInfo methodInfo, Set<DotName> forClass) {
+        Set<DotName> fromMethod = nameBindingNames(index, instanceDotNames(methodInfo.annotations()));
         if (fromMethod.isEmpty()) {
             return forClass;
         }
@@ -43,8 +43,8 @@ public class NameBindingUtil {
         return result;
     }
 
-    private static Set<String> nameBindingNames(IndexView index, Collection<DotName> annotations) {
-        Set<String> result = new HashSet<>();
+    private static Set<DotName> nameBindingNames(IndexView index, Collection<DotName> annotations) {
+        Set<DotName> result = new HashSet<>();
         for (DotName classAnnotationDotName : annotations) {
             if (classAnnotationDotName.equals(PATH) || classAnnotationDotName.equals(CONSUMES)
                     || classAnnotationDotName.equals(PRODUCES)) {
@@ -55,7 +55,7 @@ public class NameBindingUtil {
                 continue;
             }
             if (classAnnotation.declaredAnnotation(NAME_BINDING) != null) {
-                result.add(classAnnotation.name().toString());
+                result.add(classAnnotation.name());
             }
         }
         return result;

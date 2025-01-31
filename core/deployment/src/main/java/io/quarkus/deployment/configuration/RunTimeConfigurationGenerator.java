@@ -6,7 +6,6 @@ import static io.quarkus.runtime.annotations.ConfigPhase.RUN_TIME;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1212,45 +1211,7 @@ public final class RunTimeConfigurationGenerator {
             MethodCreator mc = cc.getMethodCreator(method);
             mc.setModifiers(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC);
 
-            ResultHandle nameIterator = mc.getMethodParam(0);
-            BranchResult hasNext = mc.ifTrue(mc.invokeVirtualMethod(NI_HAS_NEXT, nameIterator));
-
-            try (BytecodeCreator hasNextTrue = hasNext.trueBranch()) {
-                ArrayDeque<String> childNames = new ArrayDeque<>();
-                // * matching has to come last
-                for (String childName : names.childNames()) {
-                    if (childName.startsWith("*")) {
-                        childNames.addLast(childName);
-                    } else {
-                        childNames.addFirst(childName);
-                    }
-                }
-
-                for (String childName : childNames) {
-                    ConfigPatternMap<Boolean> child = names.getChild(childName);
-                    BranchResult nextEquals = hasNextTrue
-                            .ifTrue(hasNextTrue.invokeStaticMethod(PU_IS_MAPPED, nameIterator, hasNextTrue.load(childName)));
-                    try (BytecodeCreator nextEqualsTrue = nextEquals.trueBranch()) {
-                        String childMethodName = methodName + "$" + childName.replace("[*]", "-collection");
-                        if (child.getMatched() == null) {
-                            generateIsMapped(childMethodName, child);
-                            nextEqualsTrue.invokeVirtualMethod(NI_NEXT, nameIterator);
-                            nextEqualsTrue
-                                    .returnValue(nextEqualsTrue.invokeStaticMethod(MethodDescriptor.ofMethod(CONFIG_CLASS_NAME,
-                                            childMethodName, boolean.class, NameIterator.class), nameIterator));
-                        } else {
-                            nextEqualsTrue.returnBoolean(true);
-                        }
-                    }
-                }
-                hasNextTrue.returnBoolean(false);
-            }
-
-            try (BytecodeCreator hasNextFalse = hasNext.falseBranch()) {
-                hasNextFalse.returnBoolean(false);
-            }
-
-            mc.returnBoolean(false);
+            mc.returnBoolean(true);
             mc.close();
         }
 
