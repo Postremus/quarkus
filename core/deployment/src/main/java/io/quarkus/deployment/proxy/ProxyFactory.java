@@ -4,7 +4,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -209,9 +208,9 @@ public class ProxyFactory<T> {
                     ResultHandle getDeclaredMethodParamsArray = mc.newArray(Class.class,
                             methodInfo.getParameterCount());
                     if (methodInfo.getParameterCount() > 0) {
-                        Parameter[] methodInfoParameters = methodInfo.getParameters();
+                        Class<?>[] methodInfoParameterTypes = methodInfo.getParameterTypes();
                         for (int i = 0; i < methodInfo.getParameterCount(); i++) {
-                            ResultHandle paramClass = mc.loadClassFromTCCL(methodInfoParameters[i].getType());
+                            ResultHandle paramClass = mc.loadClassFromTCCL(methodInfoParameterTypes[i]);
                             mc.writeArrayValue(getDeclaredMethodParamsArray, i, paramClass);
                         }
                     }
@@ -247,8 +246,8 @@ public class ProxyFactory<T> {
 
     private MethodDescriptor toMethodDescriptor(Method methodInfo) {
         final List<String> parameterTypesStr = new ArrayList<>();
-        for (Parameter parameter : methodInfo.getParameters()) {
-            parameterTypesStr.add(parameter.getType().getName());
+        for (Class<?> parameter : methodInfo.getParameterTypes()) {
+            parameterTypesStr.add(parameter.getName());
         }
         return MethodDescriptor.ofMethod(proxyName, methodInfo.getName(), methodInfo.getReturnType(),
                 parameterTypesStr.toArray(new Object[0]));
