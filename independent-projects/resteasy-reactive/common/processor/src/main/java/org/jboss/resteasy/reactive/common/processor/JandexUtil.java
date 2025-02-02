@@ -419,7 +419,6 @@ public final class JandexUtil {
 
     public static boolean isAssignableFrom(DotName superType, DotName subType, IndexView index) {
         Set<DotName> seen = new HashSet<>();
-        seen.add(DOTNAME_OBJECT);
         Deque<DotName> workQueue = new ArrayDeque<>();
         workQueue.add(subType);
         while (!workQueue.isEmpty()) {
