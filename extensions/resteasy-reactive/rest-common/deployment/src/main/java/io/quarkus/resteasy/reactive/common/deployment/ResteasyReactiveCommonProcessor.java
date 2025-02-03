@@ -183,7 +183,7 @@ public class ResteasyReactiveCommonProcessor {
         registerContainerBeans(beanBuilder, resourceInterceptors.getContainerRequestFilters());
         registerContainerBeans(beanBuilder, resourceInterceptors.getReaderInterceptors());
         registerContainerBeans(beanBuilder, resourceInterceptors.getWriterInterceptors());
-        Set<String> globalNameBindings = applicationResultBuildItem.getResult().getGlobalNameBindings();
+        Set<DotName> globalNameBindings = applicationResultBuildItem.getResult().getGlobalNameBindings();
         for (WriterInterceptorBuildItem i : writerInterceptors) {
             registerInterceptors(globalNameBindings, resourceInterceptors.getWriterInterceptors(), i, beanBuilder);
         }
@@ -200,7 +200,7 @@ public class ResteasyReactiveCommonProcessor {
         return new ResourceInterceptorsBuildItem(resourceInterceptors);
     }
 
-    protected <T, B extends AbstractInterceptorBuildItem> void registerInterceptors(Set<String> globalNameBindings,
+    protected <T, B extends AbstractInterceptorBuildItem> void registerInterceptors(Set<DotName> globalNameBindings,
             InterceptorContainer<T> interceptors, B filterItem, AdditionalBeanBuildItem.Builder beanBuilder) {
         if (filterItem.isRegisterAsBean()) {
             beanBuilder.addBeanClass(filterItem.getClassName());
@@ -255,8 +255,8 @@ public class ResteasyReactiveCommonProcessor {
         }
     }
 
-    private boolean namePresent(Set<String> nameBindingNames, Set<String> globalNameBindings) {
-        for (String i : globalNameBindings) {
+    private boolean namePresent(Set<DotName> nameBindingNames, Set<DotName> globalNameBindings) {
+        for (DotName i : globalNameBindings) {
             if (nameBindingNames.contains(i)) {
                 return true;
             }
@@ -374,12 +374,12 @@ public class ResteasyReactiveCommonProcessor {
      * @param buildTimeConditions the build time conditions from which the excluded classes are extracted.
      * @return the set of classes that have been annotated with unsuccessful build time conditions.
      */
-    public static Set<String> getExcludedClasses(List<BuildTimeConditionBuildItem> buildTimeConditions) {
+    public static Set<DotName> getExcludedClasses(List<BuildTimeConditionBuildItem> buildTimeConditions) {
         return buildTimeConditions.stream()
                 .filter(item -> !item.isEnabled())
                 .map(BuildTimeConditionBuildItem::getTarget)
                 .filter(target -> target.kind() == AnnotationTarget.Kind.CLASS)
-                .map(target -> target.asClass().toString())
+                .map(target -> target.asClass().name())
                 .collect(Collectors.toSet());
     }
 

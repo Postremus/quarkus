@@ -489,7 +489,7 @@ public class ResteasyReactiveProcessor {
         Map<DotName, String> pathInterfaces = result.getPathInterfaces();
 
         ApplicationScanningResult appResult = applicationResultBuildItem.getResult();
-        Set<String> singletonClasses = appResult.getSingletonClasses();
+        Set<DotName> singletonClasses = appResult.getSingletonClasses();
 
         Map<String, String> existingConverters = new HashMap<>();
         List<ResourceClass> resourceClasses = new ArrayList<>();
@@ -500,7 +500,8 @@ public class ResteasyReactiveProcessor {
         QuarkusServerEndpointIndexer serverEndpointIndexer;
 
         ParamConverterProviders paramConverterProviders = paramConverterProvidersBuildItem.getParamConverterProviders();
-        Function<String, BeanFactory<?>> factoryFunction = s -> FactoryUtils.factory(s, singletonClasses, recorder,
+        Function<String, BeanFactory<?>> factoryFunction = s -> FactoryUtils.factory(DotName.createSimple(s), singletonClasses,
+                recorder,
                 beanContainerBuildItem);
         paramConverterProviders.initializeDefaultFactories(factoryFunction);
         paramConverterProviders.sort();
@@ -1290,7 +1291,7 @@ public class ResteasyReactiveProcessor {
                         .collect(toList()));
 
         ApplicationScanningResult appResult = applicationResultBuildItem.getResult();
-        Set<String> singletonClasses = appResult.getSingletonClasses();
+        Set<DotName> singletonClasses = appResult.getSingletonClasses();
         Application application = appResult.getApplication();
 
         List<ResourceClass> resourceClasses = setupEndpointsResult.getResourceClasses();
@@ -1302,7 +1303,8 @@ public class ResteasyReactiveProcessor {
         ExceptionMapping exceptionMapping = exceptionMappersBuildItem.getExceptionMapping();
         ContextResolvers contextResolvers = contextResolversBuildItem.getContextResolvers();
         ParamConverterProviders paramConverterProviders = paramConverterProvidersBuildItem.getParamConverterProviders();
-        Function<String, BeanFactory<?>> factoryFunction = s -> FactoryUtils.factory(s, singletonClasses, recorder,
+        Function<String, BeanFactory<?>> factoryFunction = s -> FactoryUtils.factory(DotName.createSimple(s), singletonClasses,
+                recorder,
                 beanContainerBuildItem);
         interceptors.initializeDefaultFactories(factoryFunction);
         contextResolvers.initializeDefaultFactories(factoryFunction);
@@ -1319,7 +1321,7 @@ public class ResteasyReactiveProcessor {
             ResourceFeature resourceFeature = new ResourceFeature();
             resourceFeature
                     .setFactory(
-                            FactoryUtils.factory(feature.getClassName(), singletonClasses, recorder,
+                            FactoryUtils.factory(DotName.createSimple(feature.getClassName()), singletonClasses, recorder,
                                     beanContainerBuildItem));
             feats.addFeature(resourceFeature);
         }

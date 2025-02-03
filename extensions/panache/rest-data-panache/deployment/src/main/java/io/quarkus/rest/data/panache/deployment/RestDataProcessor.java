@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.DotName;
 
 import io.quarkus.arc.deployment.BuildTimeConditionBuildItem;
 import io.quarkus.arc.deployment.GeneratedBeanBuildItem;
@@ -50,7 +51,8 @@ public class RestDataProcessor {
         } else {
             containerRequestFilterBuildItemBuildProducer
                     .produce(new ContainerRequestFilterBuildItem.Builder(SortQueryParamFilter.class.getName())
-                            .setNameBindingNames(Collections.singleton(SortQueryParamValidator.class.getName())).build());
+                            .setNameBindingNames(Collections.singleton(DotName.createSimple(SortQueryParamValidator.class)))
+                            .build());
         }
     }
 

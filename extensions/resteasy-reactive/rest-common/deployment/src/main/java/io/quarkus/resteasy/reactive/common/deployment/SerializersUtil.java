@@ -6,6 +6,7 @@ import java.util.Map;
 
 import jakarta.ws.rs.RuntimeType;
 
+import org.jboss.jandex.DotName;
 import org.jboss.resteasy.reactive.common.core.Serialisers;
 import org.jboss.resteasy.reactive.common.model.ResourceReader;
 import org.jboss.resteasy.reactive.common.model.ResourceWriter;
@@ -47,7 +48,7 @@ public class SerializersUtil {
             } else {
                 writer.setBuiltin(additionalWriter.isBuiltin());
             }
-            writer.setFactory(FactoryUtils.factory(writerClassName,
+            writer.setFactory(FactoryUtils.factory(DotName.createSimple(writerClassName),
                     applicationResultBuildItem.getResult().getSingletonClasses(), recorder,
                     beanContainerBuildItem));
             writer.setConstraint(additionalWriter.getRuntimeType());
@@ -78,7 +79,7 @@ public class SerializersUtil {
             } else {
                 reader.setBuiltin(additionalReader.isBuiltin());
             }
-            reader.setFactory(FactoryUtils.factory(readerClassName,
+            reader.setFactory(FactoryUtils.factory(DotName.createSimple(readerClassName),
                     applicationResultBuildItem.getResult().getSingletonClasses(), recorder,
                     beanContainerBuildItem));
             reader.setConstraint(additionalReader.getRuntimeType());
