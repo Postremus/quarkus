@@ -1049,27 +1049,39 @@ public class ResteasyReactiveProcessor {
 
     private AnnotationInstance createTypedAnnotationInstance(ClassInfo clazz,
             BeanArchiveIndexBuildItem beanArchiveIndexBuildItem) {
-        Set<DotName> interfaceNames = new HashSet<>();
-        ClassInfo currentClazz = clazz;
-        while (!ResteasyReactiveDotNames.OBJECT.equals(currentClazz.name())) {
-            currentClazz.interfaceNames().forEach(iface -> interfaceNames.add(iface));
-            // inspect super class
-            currentClazz = beanArchiveIndexBuildItem.getIndex().getClassByName(currentClazz.superName());
-        }
-        Set<DotName> allInterfaces = new HashSet<>();
-        recursiveInterfaceSearch(interfaceNames, allInterfaces, beanArchiveIndexBuildItem);
-        AnnotationValue[] annotationValues = new AnnotationValue[allInterfaces.size() + 1];
-        // always add the bean impl class
-        annotationValues[0] = AnnotationValue.createClassValue("value",
-                Type.create(clazz.name(), Type.Kind.CLASS));
-        Iterator<DotName> iterator = allInterfaces.iterator();
-        for (int i = 1; i < annotationValues.length; i++) {
+        Set<DotName> allTypesToAdd = recursiveInterfaceSearch(clazz.name(), beanArchiveIndexBuildItem.getIndex());
+        AnnotationValue[] annotationValues = new AnnotationValue[allTypesToAdd.size()];
+        Iterator<DotName> iterator = allTypesToAdd.iterator();
+        for (int i = 0; i < annotationValues.length; i++) {
             annotationValues[i] = AnnotationValue.createClassValue("value",
                     Type.create(iterator.next(), Type.Kind.CLASS));
         }
+
         return AnnotationInstance.create(ResteasyReactiveDotNames.TYPED, clazz,
                 new AnnotationValue[] { AnnotationValue.createArrayValue("value",
                         annotationValues) });
+    }
+
+    private Set<DotName> recursiveInterfaceSearch(DotName start, IndexView indexView) {
+        Set<DotName> seen = new HashSet<>();
+        Deque<DotName> stack = new ArrayDeque<>();
+        stack.add(start);
+        while (!stack.isEmpty()) {
+            DotName poll = stack.poll();
+            if (ResteasyReactiveDotNames.OBJECT.equals(poll) || !seen.add(poll)) {
+                continue;
+            }
+
+            ClassInfo classInfo = indexView.getClassByName(poll);
+            if (classInfo == null) {
+                continue;
+            }
+
+            stack.addAll(classInfo.interfaceNames());
+            stack.add(classInfo.superName());
+        }
+
+        return seen;
     }
 
     private void recursiveInterfaceSearch(Set<DotName> interfacesToProcess, Set<DotName> allDiscoveredInterfaces,
