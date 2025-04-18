@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -23,19 +22,18 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.client.impl.RestClientRequestContext;
 import org.jboss.resteasy.reactive.client.spi.ClientMessageBodyReader;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import io.quarkus.test.QuarkusUnitTest;
 
-public class SubResourceGenericsTest {
+public class Generic2Test {
     @RegisterExtension
     static final QuarkusUnitTest TEST = new QuarkusUnitTest()
             .withApplicationRoot((jar) -> jar
                     .addClass(Resource.class)
-                    .addClass(ClientLocator.class)
+                    .addClass(ClientLocatorV2.class)
+                    .addClass(ClientLocatorV2Base.class)
                     .addClass(TranslationSubResource.class)
                     .addClass(EnglishSubResource.class)
                     .addClass(ShortsSubResource.class)
@@ -44,61 +42,34 @@ public class SubResourceGenericsTest {
                     .addClass(CellsAsMapEntryClientMessageBodyReader.class));
 
     @RestClient
-    ClientLocator client;
+    ClientLocatorV2 clientv2;
 
     @Test
-    void testRestCalls() {
+    void testRestCallsV2() {
         {
-            String result = client.string().subResource().subResource().subResource().get();
+            String result = clientv2.string().subResource().subResource().subResource().get();
             assertThat(result).isEqualTo("Hello,World");
         }
 
         {
-            Long result = client.number().subResource().subResource().subResource().get();
+            Long result = clientv2.number().subResource().subResource().subResource().get();
             assertThat(result).isEqualTo(42L);
         }
 
         {
-            List<String> result = client.testListOnRoot();
+            List<String> result = clientv2.testListOnRoot();
             assertThat(result).contains("Hello", "World");
         }
 
         {
-            List<String> result = client.list().subResource().subResource().subResource().get();
+            List<String> result = clientv2.list().subResource().subResource().subResource().get();
             assertThat(result).contains("Hello", "World");
         }
 
         {
-            Map<String, String> result = client.map().subResource().subResource().subResource().get();
+            Map<String, String> result = clientv2.map().subResource().subResource().subResource().get();
             assertThat(result).containsEntry("Hello", "World");
         }
-    }
-
-    @Test
-    void testFailureSubResourceLocatorMethodWithUnresolvedTypeVariable() {
-
-        try {
-            QuarkusRestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8081"))
-                    .build(TranslationSubResource.class);
-        } catch (Exception e) {
-            assertThat(e.getMessage()).endsWith(
-                    "Failed to generate client for class interface io.quarkus.rest.client.reactive.subresource.SubResourceGenericsTest$TranslationSubResource : Type variable R of method io.quarkus.rest.client.reactive.subresource.SubResourceGenericsTest$EnglishSubResource<R> subResource() in class io.quarkus.rest.client.reactive.subresource.SubResourceGenericsTest$TranslationSubResource could not be resolved.");
-            return;
-        }
-        Assertions.fail("Should have thrown an exception");
-    }
-
-    @Test
-    void testFailureRestClientMethodWithUnresolvedTypeVariable() {
-
-        try {
-            QuarkusRestClientBuilder.newBuilder().baseUri(URI.create("http://localhost:8081")).build(HelloSubResource.class);
-        } catch (Exception e) {
-            assertThat(e.getMessage()).endsWith(
-                    "Failed to generate client for class interface io.quarkus.rest.client.reactive.subresource.SubResourceGenericsTest$HelloSubResource : Type variable V of method V get() in class io.quarkus.rest.client.reactive.subresource.SubResourceGenericsTest$HelloSubResource could not be resolved.");
-            return;
-        }
-        Assertions.fail("Should have thrown an exception");
     }
 
     @Path("")
@@ -116,21 +87,23 @@ public class SubResourceGenericsTest {
         }
     }
 
-    @RegisterRestClient(baseUri = "http://localhost:8081")
-    @Path("")
-    public interface ClientLocator {
-
+    public interface ClientLocatorV2Base<T, V> {
         @Path("greetings/translations")
-        TranslationSubResource<String> string();
+        TranslationSubResource<T> string();
 
         @Path("greetings-count/translations")
-        TranslationSubResource<Long> number();
+        TranslationSubResource<V> number();
 
         @Path("greetings/translations")
-        TranslationSubResource<List<String>> list();
+        TranslationSubResource<List<T>> list();
 
         @Path("greetings/translations")
-        TranslationSubResource<Map<String, String>> map();
+        TranslationSubResource<Map<T, T>> map();
+    }
+
+    @RegisterRestClient(baseUri = "http://localhost:8081")
+    @Path("")
+    public interface ClientLocatorV2 extends ClientLocatorV2Base<String, Long> {
 
         @Path("greetings/translations/english/shorts/hello")
         @GET

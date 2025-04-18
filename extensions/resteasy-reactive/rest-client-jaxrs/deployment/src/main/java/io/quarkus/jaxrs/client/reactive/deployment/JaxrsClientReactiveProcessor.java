@@ -33,6 +33,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
 import java.nio.file.Path;
 import java.util.AbstractMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -904,6 +905,26 @@ public class JaxrsClientReactiveProcessor {
                 enricher.getEnricher().forClass(classContext.constructor, baseTarget, interfaceClass, index);
             }
 
+            Map<DotName, Map<String, Type>> xxx = new HashMap<>();
+            if (!interfaceClass.interfaceNames().isEmpty()) {
+                ArrayDeque<Type> toScan = new ArrayDeque<>();
+                toScan.addAll(interfaceClass.interfaceTypes());
+                while (!toScan.isEmpty()) {
+                    Type poll = toScan.poll();
+                    if (poll.kind() == PARAMETERIZED_TYPE) {
+                        ParameterizedType parameterizedType = poll.asParameterizedType();
+                        ClassInfo superInterface = index.getClassByName(poll.name());
+                        for (int i = 0; i < parameterizedType.arguments().size(); i++) {
+                            Type superTypeParameter = superInterface.typeParameters().get(i);
+                            xxx.putIfAbsent(poll.name(), new HashMap<>());
+                            Map<String, Type> typeVariables = xxx.get(poll.name());
+                            typeVariables.put(superTypeParameter.asTypeVariable().identifier(),
+                                    parameterizedType.arguments().get(i));
+                        }
+                    }
+                }
+            }
+
             //
             // go through all the methods of the jaxrs interface. Create specific WebTargets (in the constructor) and methods
             //
@@ -932,7 +953,7 @@ public class JaxrsClientReactiveProcessor {
                     handleSubResourceMethod(enrichers, generatedClasses, interfaceClass, index, defaultMediaType,
                             httpAnnotationToMethod, name, classContext, baseTarget, methodIndex, method,
                             javaMethodParameters, jandexMethod, multipartResponseTypes, Collections.emptyList(),
-                            generatedSubResources, new HashMap<>());
+                            generatedSubResources, xxx.getOrDefault(jandexMethod.declaringClass().name(), new HashMap<>()));
                 } else {
                     FieldDescriptor methodField = classContext.createJavaMethodField(interfaceClass, jandexMethod,
                             methodIndex);
@@ -1250,7 +1271,7 @@ public class JaxrsClientReactiveProcessor {
                     handleReturn(interfaceClass, defaultMediaType, method.getHttpMethod(),
                             method.getConsumes(), jandexMethod, methodCreator, formParams,
                             bodyParameterIdx == null ? null : methodCreator.getMethodParam(bodyParameterIdx), builder,
-                            multipart, Collections.emptyMap());
+                            multipart, Collections.emptyMap(), index);
                 }
             }
 
@@ -1415,20 +1436,11 @@ public class JaxrsClientReactiveProcessor {
                 "got " + result + " of type: " + result.kind());
     }
 
-    private void handleSubResourceMethod(List<JaxrsClientReactiveEnricherBuildItem> enrichers,
-            BuildProducer<GeneratedClassBuildItem> generatedClasses, ClassInfo interfaceClass, IndexView index,
-            String defaultMediaType, Map<DotName, String> httpAnnotationToMethod, String name,
-            ClassRestClientContext ownerContext, ResultHandle ownerTarget, int methodIndex,
-            ResourceMethod method, String[] javaMethodParameters, MethodInfo jandexMethod,
-            Set<ClassInfo> multipartResponseTypes, List<SubResourceParameter> ownerSubResourceParameters,
-            Map<GeneratedSubResourceKey, String> generatedSubResources, Map<String, Type> ownerIdentifierToTypeVariable) {
-
-        Map<String, Type> identifierToTypeVariable = new HashMap<>();
-        Type returnType = jandexMethod.returnType();
+    private Type resolveType(IndexView index, MethodInfo jandexMethod, Type returnType,
+            Map<String, Type> ownerIdentifierToTypeVariable) {
         if (returnType.kind() == PARAMETERIZED_TYPE) {
 
             ParameterizedType parameterizedReturnType = returnType.asParameterizedType();
-            ClassInfo returnClass = index.getClassByName(returnType.name());
             ParameterizedType.Builder methodReturnTypeBuilder = ParameterizedType.builder(returnType.name());
             for (int i = 0; i < parameterizedReturnType.arguments().size(); i++) {
                 Type paramReturnTypeArg = parameterizedReturnType.arguments().get(i);
@@ -1438,34 +1450,109 @@ public class JaxrsClientReactiveProcessor {
                     resolvedType = ownerIdentifierToTypeVariable.get(paramReturnTypeArg.asTypeVariable().identifier());
                     if (resolvedType == null) {
                         throw new IllegalArgumentException(
-                                "Type variable %s of the sub resource locator method's return type %s could not be resolved."
-                                        .formatted(paramReturnTypeArg.asTypeVariable().identifier(), jandexMethod));
+                                "Type variable %s of method %s in class %s could not be resolved."
+                                        .formatted(paramReturnTypeArg.asTypeVariable().identifier(), jandexMethod,
+                                                jandexMethod.declaringClass()));
                     }
+                } else if (paramReturnTypeArg.kind() == PARAMETERIZED_TYPE) {
+                    // method returns another subresource, and one of the arguments is a parameterized type with either a type variable e.g.  Wrapper<List<T>> or without, e.g. Wrapper<List<String>>
+                    resolvedType = resolveType(index, jandexMethod, paramReturnTypeArg, ownerIdentifierToTypeVariable);
                 } else {
-                    // Subresource, but no type variable, e.g. Wrapper<String>
                     resolvedType = paramReturnTypeArg;
                 }
 
-                identifierToTypeVariable.put(returnClass.typeParameters().get(i).identifier(), resolvedType);
                 methodReturnTypeBuilder.addArgument(resolvedType);
             }
 
             // rewrite returnType to reflect the resolved type variable for the generatedSubResources cache
             // i.e. Wrapper<String> instead of Wrapper<V>
-            returnType = methodReturnTypeBuilder.build();
+            return methodReturnTypeBuilder.build();
         } else if (returnType.kind() == TYPE_VARIABLE) {
             TypeVariable typeVariable = returnType.asTypeVariable();
             // rewrite returnType to reflect the resolved type variable for the generatedSubResources cache
             // i.e. String instead of Type Variable V
-            returnType = identifierToTypeVariable.get(typeVariable.identifier());
-            if (returnType == null) {
-                return;
+            Type resolvedType = ownerIdentifierToTypeVariable.get(typeVariable.identifier());
+            if (resolvedType == null) {
+                throw new IllegalArgumentException(
+                        "Type variable %s of method %s in class %s could not be resolved."
+                                .formatted(typeVariable.identifier(), jandexMethod, jandexMethod.declaringClass()));
             }
-
+            return resolvedType;
         } else if (returnType.kind() != CLASS) {
             // sort of sub-resource method that returns a thing that isn't a class
             throw new IllegalArgumentException("Sub resource type is not a class: " + returnType.name().toString());
         }
+
+        return returnType;
+    }
+
+    private Map<DotName, Map<String, Type>> builXXX(IndexView index, ClassInfo owner, Type ownerType) {
+
+        Map<DotName, Map<String, Type>> xxx = new HashMap<>();
+
+        if (ownerType != null) {
+            xxx.put(ownerType.name(), resolveIdentifierTypeVariable(index, ownerType));
+
+            if (owner == null) {
+                owner = index.getClassByName(ownerType.name());
+            }
+        }
+
+        resolveTypeVariablesOfInterfaceHirarchy(index, owner, xxx);
+
+        return xxx;
+    }
+
+    private void resolveTypeVariablesOfInterfaceHirarchy(IndexView index, ClassInfo owner,
+            Map<DotName, Map<String, Type>> xxx) {
+        if (!owner.isInterface() || owner.interfaceTypes().isEmpty() || OBJECT.equals(owner.name())) {
+            return;
+        }
+
+        for (int i = 0; i < owner.interfaceTypes().size(); i++) {
+            Type interfaceType = owner.interfaceTypes().get(i);
+            Type resolvedInterfaceType = resolveType(index, null, interfaceType,
+                    xxx.getOrDefault(owner.name(), Collections.emptyMap()));
+
+            Map<String, Type> identifierToTypeVariable = resolveIdentifierTypeVariable(index, resolvedInterfaceType);
+
+            if (xxx.putIfAbsent(interfaceType.name(), identifierToTypeVariable) != null) {
+                // todo: throw
+                continue;
+            }
+
+            resolveTypeVariablesOfInterfaceHirarchy(index, index.getClassByName(interfaceType.name()), xxx);
+        }
+    }
+
+    private Map<String, Type> resolveIdentifierTypeVariable(IndexView index, Type type) {
+        Map<String, Type> result = new HashMap<>();
+        if (type.kind() == PARAMETERIZED_TYPE) {
+            ClassInfo currentClass = index.getClassByName(type.name());
+            ParameterizedType parameterizedType = type.asParameterizedType();
+
+            for (int i = 0; i < parameterizedType.arguments().size(); i++) {
+                Type superTypeParameter = currentClass.typeParameters().get(i);
+                result.put(superTypeParameter.asTypeVariable().identifier(),
+                        parameterizedType.arguments().get(i));
+            }
+        }
+
+        return result;
+    }
+
+    private void handleSubResourceMethod(List<JaxrsClientReactiveEnricherBuildItem> enrichers,
+            BuildProducer<GeneratedClassBuildItem> generatedClasses, ClassInfo interfaceClass, IndexView index,
+            String defaultMediaType, Map<DotName, String> httpAnnotationToMethod, String name,
+            ClassRestClientContext ownerContext, ResultHandle ownerTarget, int methodIndex,
+            ResourceMethod method, String[] javaMethodParameters, MethodInfo jandexMethod,
+            Set<ClassInfo> multipartResponseTypes, List<SubResourceParameter> ownerSubResourceParameters,
+            Map<GeneratedSubResourceKey, String> generatedSubResources, Map<String, Type> ownerIdentifierToTypeVariable) {
+
+        Type returnType = resolveType(index, jandexMethod, jandexMethod.returnType(), ownerIdentifierToTypeVariable);
+
+        Map<DotName, Map<String, Type>> identifierToTypeVariable = builXXX(index, interfaceClass, returnType);
+
         ClassInfo subInterface = index.getClassByName(returnType.name());
         if (!Modifier.isInterface(subInterface.flags())) {
             throw new IllegalArgumentException(
@@ -1954,7 +2041,9 @@ public class JaxrsClientReactiveProcessor {
                     handleReturn(subInterface, defaultMediaType,
                             getHttpMethod(jandexSubMethod, subMethod.getHttpMethod(), httpAnnotationToMethod),
                             consumes, jandexSubMethod, subMethodCreator, formParams, bodyParameterValue,
-                            builder, multipart, identifierToTypeVariable);
+                            builder, multipart, identifierToTypeVariable.getOrDefault(jandexSubMethod.declaringClass().name(),
+                                    Collections.emptyMap()),
+                            index);
                 } else {
                     // finding corresponding jandex method, used by enricher (MicroProfile enricher stores it in a field
                     // to later fill in context with corresponding java.lang.reflect.Method)
@@ -1967,7 +2056,8 @@ public class JaxrsClientReactiveProcessor {
                     handleSubResourceMethod(enrichers, generatedClasses, subInterface, index,
                             defaultMediaType, httpAnnotationToMethod, subName, subContext, subMethodTarget,
                             subMethodIndex, subMethod, subJavaMethodParameters, jandexSubMethod,
-                            multipartResponseTypes, subParamFields, generatedSubResources, identifierToTypeVariable);
+                            multipartResponseTypes, subParamFields, generatedSubResources, identifierToTypeVariable
+                                    .getOrDefault(jandexSubMethod.declaringClass().name(), Collections.emptyMap()));
                 }
 
             }
@@ -2396,20 +2486,9 @@ public class JaxrsClientReactiveProcessor {
     private void handleReturn(ClassInfo restClientInterface, String defaultMediaType, String httpMethod, String[] consumes,
             MethodInfo jandexMethod, MethodCreator methodCreator, ResultHandle formParams,
             ResultHandle bodyValue, AssignableResultHandle builder, boolean multipart,
-            Map<String, Type> identifierToTypeVariable) {
-        Type returnType = jandexMethod.returnType();
+            Map<String, Type> identifierToTypeVariable, IndexView indexView) {
+        Type returnType = resolveType(indexView, jandexMethod, jandexMethod.returnType(), identifierToTypeVariable);
         ReturnCategory returnCategory = ReturnCategory.BLOCKING;
-
-        if (returnType.kind() == TYPE_VARIABLE) {
-            TypeVariable typeVariable = returnType.asTypeVariable();
-            Type resolvedTypeVariable = identifierToTypeVariable.get(typeVariable.identifier());
-            if (resolvedTypeVariable != null) {
-                returnType = resolvedTypeVariable;
-            } else {
-                throw new RuntimeException("Type variable %s of the return type of method %s could not be resolved."
-                        .formatted(typeVariable.identifier(), jandexMethod));
-            }
-        }
 
         String simpleReturnType = returnType.name().toString();
         ResultHandle genericReturnType = null;
