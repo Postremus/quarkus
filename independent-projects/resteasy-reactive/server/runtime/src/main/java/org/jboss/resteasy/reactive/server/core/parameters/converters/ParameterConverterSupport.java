@@ -1,5 +1,7 @@
 package org.jboss.resteasy.reactive.server.core.parameters.converters;
 
+import java.lang.reflect.Constructor;
+
 /**
  * This class isn't used directly, it is however used by generated code meant to deal with {@link ParameterConverter}.
  */
@@ -17,7 +19,9 @@ public final class ParameterConverterSupport {
     public static ParameterConverter create(String className) {
         try {
             Class<?> clazz = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
-            return (ParameterConverter) clazz.getConstructor().newInstance();
+            Constructor<?> constructor = clazz.getConstructor();
+            constructor.setAccessible(true);
+            return (ParameterConverter) constructor.newInstance();
         } catch (Exception e) {
             throw new RuntimeException("Unable to create instance of " + className, e);
         }

@@ -109,7 +109,7 @@ public class ParameterHandler implements ServerRestHandler {
                     } catch (WebApplicationException x) {
                         toThrow = x;
                     } catch (Throwable x) {
-                        log.debug("Unable to handle parameter", x);
+                        log.error("Unable to handle parameter", x);
                         toThrow = new NotFoundException(x);
                     }
                     break;

@@ -2,6 +2,7 @@ package org.jboss.resteasy.reactive.server.processor.generation.converters;
 
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.function.Function;
@@ -83,8 +84,32 @@ public class GeneratedConverterIndexerExtension implements ServerEndpointIndexer
                     Object.class.getName(), ParameterConverter.class.getName())) {
                 MethodCreator mc = classCreator.getMethodCreator("convert", Object.class, Object.class);
                 if (stringCtor != null) {
-                    ResultHandle ret = mc.newInstance(stringCtor, mc.getMethodParam(0));
-                    mc.returnValue(ret);
+                    if (false || Modifier.isPublic(stringCtor.flags())) {
+                        ResultHandle ret = mc.newInstance(stringCtor, mc.getMethodParam(0));
+                        mc.returnValue(ret);
+                    } else {
+                        // Constructor var2 = Issue47471.StringType.class.getDeclaredConstructor(String.class);
+                        // var2.setAccessible(true);
+                        // return var2.newInstance((String)var1);
+                        ResultHandle clazz = mc.loadClassFromTCCL(stringCtor.declaringClass().name().toString());
+
+                        ResultHandle array = mc.newArray(Class.class, 1);
+                        mc.writeArrayValue(array, 0, mc.loadClass(String.class));
+
+                        ResultHandle constructor = mc.invokeVirtualMethod(MethodDescriptor.ofMethod(Class.class,
+                                "getDeclaredConstructor", Constructor.class, Class[].class), clazz, array);
+                        mc.invokeVirtualMethod(
+                                MethodDescriptor.ofMethod(Constructor.class, "setAccessible", void.class, boolean.class),
+                                constructor, mc.load(true));
+
+                        array = mc.newArray(Object.class, 1);
+                        mc.writeArrayValue(array, 0, mc.getMethodParam(0));
+                        ResultHandle ret = mc.invokeVirtualMethod(
+                                MethodDescriptor.ofMethod(Constructor.class, "newInstance", Object.class, Object[].class),
+                                constructor, array);
+                        ret = mc.checkCast(ret, stringCtor.declaringClass().name().toString());
+                        mc.returnValue(ret);
+                    }
                 } else if (valueOf != null) {
                     ResultHandle ret = mc.invokeStaticMethod(valueOf, mc.getMethodParam(0));
                     mc.returnValue(ret);
@@ -93,6 +118,7 @@ public class GeneratedConverterIndexerExtension implements ServerEndpointIndexer
                     mc.returnValue(ret);
                 }
             }
+
             delegate = new LoadedParameterConverter().setClassName(baseName);
         } else {
             // let's not try this again
