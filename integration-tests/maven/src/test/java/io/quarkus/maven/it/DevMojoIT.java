@@ -1684,6 +1684,30 @@ public class DevMojoIT extends LaunchMojoTestBase {
     }
 
     @Test
+    //@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Installing the library again is failing on Windows, probably because the jar is accessed by the dev mode process")
+    public void testRRExternal() throws Exception {
+        final String rootProjectPath = "projects/rr-external-artifacts";
+
+        // Set up the external project
+        final File externalJarDir = initProject(rootProjectPath + "/external-lib");
+
+        // Clean and install the external JAR in local repository (.m2)
+        install(externalJarDir, true);
+
+        // Set up the main project that uses the external dependency
+        this.testDir = initProject(rootProjectPath + "/app");
+
+        // Run quarkus:dev process
+        run(true);
+
+
+        await()
+                .pollDelay(100, TimeUnit.MILLISECONDS)
+                .atMost(TestUtils.getDefaultTimeout(), TimeUnit.MINUTES)
+                .until(() -> devModeClient.getHttpResponse("/hello").contains("Hello"));
+    }
+
+    @Test
     public void testThatAptInClasspathWorks() throws MavenInvocationException, IOException {
         testDir = initProject("projects/apt-in-classpath", "projects/project-apt-in-classpath");
         run(true);

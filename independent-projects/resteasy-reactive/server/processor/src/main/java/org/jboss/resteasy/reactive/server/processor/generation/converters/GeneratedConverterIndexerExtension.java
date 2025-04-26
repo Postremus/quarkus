@@ -3,6 +3,7 @@ package org.jboss.resteasy.reactive.server.processor.generation.converters;
 import static org.jboss.resteasy.reactive.common.processor.ResteasyReactiveDotNames.STRING;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.function.Function;
@@ -36,28 +37,28 @@ public class GeneratedConverterIndexerExtension implements ServerEndpointIndexer
     public ParameterConverterSupplier extractConverterImpl(String elementType, IndexView indexView,
             Map<String, String> existingConverters, String errorLocation, boolean hasRuntimeConverters) {
 
-        MethodDescriptor fromString = null;
-        MethodDescriptor valueOf = null;
+        MethodInfo fromString = null;
+        MethodInfo valueOf = null;
         MethodInfo stringCtor = null;
         String primitiveWrapperType = EndpointIndexer.primitiveTypes.get(elementType);
         String prefix = "";
         if (primitiveWrapperType != null) {
-            valueOf = MethodDescriptor.ofMethod(primitiveWrapperType, "valueOf", primitiveWrapperType, String.class);
+            //valueOf = MethodDescriptor.ofMethod(primitiveWrapperType, "valueOf", primitiveWrapperType, String.class);
             prefix = "io.quarkus.generated.";
         } else {
             ClassInfo type = indexView.getClassByName(DotName.createSimple(elementType));
             if (type != null) {
                 for (MethodInfo i : type.methods()) {
-                    boolean isStatic = ((i.flags() & Modifier.STATIC) != 0);
-                    boolean isNotPrivate = (i.flags() & Modifier.PRIVATE) == 0;
+                    boolean isStatic = Modifier.isStatic(i.flags());
+                    boolean isNotPrivate = !Modifier.isPrivate(i.flags());
                     if ((i.parametersCount() == 1) && isNotPrivate) {
                         if (i.parameterType(0).name().equals(STRING)) {
                             if (i.name().equals("<init>")) {
                                 stringCtor = i;
                             } else if (i.name().equals("valueOf") && isStatic) {
-                                valueOf = MethodDescriptor.of(i);
+                                valueOf = i;
                             } else if (i.name().equals("fromString") && isStatic) {
-                                fromString = MethodDescriptor.of(i);
+                                fromString = i;
                             }
                         }
                     }
@@ -83,39 +84,63 @@ public class GeneratedConverterIndexerExtension implements ServerEndpointIndexer
                     baseName, null,
                     Object.class.getName(), ParameterConverter.class.getName())) {
                 MethodCreator mc = classCreator.getMethodCreator("convert", Object.class, Object.class);
-                if (stringCtor != null) {
-                    if (false || Modifier.isPublic(stringCtor.flags())) {
+                if (primitiveWrapperType != null) {
+                    //valueOf = MethodDescriptor.ofMethod(primitiveWrapperType, "valueOf", primitiveWrapperType, String.class);
+                } else if (stringCtor != null) {
+                    if (Modifier.isPublic(stringCtor.flags())) {
                         ResultHandle ret = mc.newInstance(stringCtor, mc.getMethodParam(0));
                         mc.returnValue(ret);
                     } else {
-                        // Constructor var2 = Issue47471.StringType.class.getDeclaredConstructor(String.class);
-                        // var2.setAccessible(true);
-                        // return var2.newInstance((String)var1);
-                        ResultHandle clazz = mc.loadClassFromTCCL(stringCtor.declaringClass().name().toString());
+                        ResultHandle clazz = mc.loadClass(elementType);
 
-                        ResultHandle array = mc.newArray(Class.class, 1);
-                        mc.writeArrayValue(array, 0, mc.loadClass(String.class));
+                        ResultHandle varArgsParameter = mc.newArray(Class.class, 1);
+                        mc.writeArrayValue(varArgsParameter, 0, mc.loadClass(String.class));
 
                         ResultHandle constructor = mc.invokeVirtualMethod(MethodDescriptor.ofMethod(Class.class,
-                                "getDeclaredConstructor", Constructor.class, Class[].class), clazz, array);
+                                "getDeclaredConstructor", Constructor.class, Class[].class), clazz, varArgsParameter);
                         mc.invokeVirtualMethod(
                                 MethodDescriptor.ofMethod(Constructor.class, "setAccessible", void.class, boolean.class),
                                 constructor, mc.load(true));
 
-                        array = mc.newArray(Object.class, 1);
-                        mc.writeArrayValue(array, 0, mc.getMethodParam(0));
+                        varArgsParameter = mc.newArray(Object.class, 1);
+                        mc.writeArrayValue(varArgsParameter, 0, mc.getMethodParam(0));
+
                         ResultHandle ret = mc.invokeVirtualMethod(
                                 MethodDescriptor.ofMethod(Constructor.class, "newInstance", Object.class, Object[].class),
-                                constructor, array);
-                        ret = mc.checkCast(ret, stringCtor.declaringClass().name().toString());
+                                constructor, varArgsParameter);
                         mc.returnValue(ret);
                     }
                 } else if (valueOf != null) {
-                    ResultHandle ret = mc.invokeStaticMethod(valueOf, mc.getMethodParam(0));
-                    mc.returnValue(ret);
+                    if (Modifier.isPublic(valueOf.flags())) {
+                        ResultHandle ret = mc.invokeStaticMethod(valueOf, mc.getMethodParam(0));
+                        mc.returnValue(ret);
+                    } else {
+                        //Object.class.getDeclaredMethod()
+                    }
                 } else if (fromString != null) {
-                    ResultHandle ret = mc.invokeStaticMethod(fromString, mc.getMethodParam(0));
-                    mc.returnValue(ret);
+                    if (true || Modifier.isPublic(fromString.flags())) {
+                        ResultHandle ret = mc.invokeStaticMethod(fromString, mc.getMethodParam(0));
+                        mc.returnValue(ret);
+                    } else {
+
+                        ResultHandle varArgsParameter = mc.newArray(Class.class, 1);
+                        mc.writeArrayValue(varArgsParameter, 0, mc.loadClass(String.class));
+
+                        ResultHandle clazz = mc.loadClass(elementType);
+                        ResultHandle method = mc.invokeVirtualMethod(MethodDescriptor.ofMethod(Class.class,
+                                "getDeclaredMethod", Method.class, String.class, Class[].class), clazz, mc.load("fromString"),
+                                varArgsParameter);
+                        mc.invokeVirtualMethod(
+                                MethodDescriptor.ofMethod(Method.class, "setAccessible", void.class, boolean.class),
+                                method, mc.load(true));
+
+                        varArgsParameter = mc.newArray(Object.class, 1);
+                        mc.writeArrayValue(varArgsParameter, 0, mc.getMethodParam(0));
+                        ResultHandle ret = mc.invokeVirtualMethod(
+                                MethodDescriptor.ofMethod(Method.class, "invoke", Object.class, Object.class, Object[].class),
+                                method, mc.loadNull(), varArgsParameter);
+                        mc.returnValue(ret);
+                    }
                 }
             }
 
