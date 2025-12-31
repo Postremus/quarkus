@@ -11,7 +11,9 @@ import org.apache.activemq.artemis.spi.core.security.ActiveMQSecurityManager;
 
 public class SecuredAmqpBroker {
 
-    private static EmbeddedActiveMQ server;
+    private static
+    EmbeddedActiveMQ
+            server;
 
     private SecuredAmqpBroker() {
         // avoid direct instantiation.
@@ -22,6 +24,9 @@ public class SecuredAmqpBroker {
             server = new EmbeddedActiveMQ();
             server.setSecurityManager(new ActiveMQSecurityManager() {
                 @Override
+
+
+
                 public boolean validateUser(String username, String password) {
                     return username.equalsIgnoreCase("artemis") && password.equalsIgnoreCase("artemis");
                 }
