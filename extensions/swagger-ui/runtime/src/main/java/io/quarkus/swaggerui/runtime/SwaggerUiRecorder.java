@@ -1,6 +1,7 @@
 package io.quarkus.swaggerui.runtime;
 
 import java.util.List;
+import java.util.Map;
 
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.ShutdownContext;
@@ -19,15 +20,39 @@ public class SwaggerUiRecorder {
         this.runtimeConfig = runtimeConfig;
     }
 
-    public Handler<RoutingContext> handler(String swaggerUiFinalDestination, String swaggerUiPath,
-            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations, ShutdownContext shutdownContext) {
-        if (runtimeConfig.getValue().enable().orElse(runtimeConfig.getValue().enabled())) {
-            WebJarStaticHandler handler = new WebJarStaticHandler(swaggerUiFinalDestination, swaggerUiPath,
-                    webRootConfigurations);
-            shutdownContext.addShutdownTask(new ShutdownContext.CloseRunnable(handler));
-            return handler;
-        } else {
+    public Handler<RoutingContext> staticHandler(String swaggerUiFinalDestination, String swaggerUiPath,
+            List<FileSystemStaticHandler.StaticWebRootConfiguration> webRootConfigurations,
+            ShutdownContext shutdownContext) {
+        if (!isEnabled()) {
             return new WebJarNotFoundHandler();
         }
+
+        WebJarStaticHandler handler = new WebJarStaticHandler(swaggerUiFinalDestination, swaggerUiPath,
+                webRootConfigurations);
+        shutdownContext.addShutdownTask(new ShutdownContext.CloseRunnable(handler));
+        return handler;
+    }
+
+    public Handler<RoutingContext> indexHtmlHandler(String swaggerUiPath,
+            String selfHref, String defaultTitle,
+            Map<String, String> buildTimeDefaultUrls,
+            Map<String, String> buildItemUrls,
+            String devServicesOidcClientId,
+            boolean isDevOrTest) {
+        if (!isEnabled()) {
+            return new WebJarNotFoundHandler();
+        }
+
+        SwaggerUiRuntimeConfig config = runtimeConfig.getValue();
+
+        IndexHtmlHandler handler = new IndexHtmlHandler(swaggerUiPath, selfHref, defaultTitle,
+                buildTimeDefaultUrls, buildItemUrls, devServicesOidcClientId, isDevOrTest, config);
+
+        return handler;
+    }
+
+    private boolean isEnabled() {
+        SwaggerUiRuntimeConfig config = runtimeConfig.getValue();
+        return config.enable().orElse(config.enabled());
     }
 }
