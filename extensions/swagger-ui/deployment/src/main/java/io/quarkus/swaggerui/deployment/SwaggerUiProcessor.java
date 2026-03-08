@@ -169,13 +169,13 @@ public class SwaggerUiProcessor {
                         .build());
             };
 
-            Handler<RoutingContext> staticHandler = recorder.staticHandler(result.getFinalDestination(), swaggerUiPath,
-                    result.getWebRootConfigurations(), shutdownContext);
-            handlerRegistrar.accept(staticHandler);
-
             Handler<RoutingContext> indexHtmlHandler = recorder.indexHtmlHandler(swaggerUiPath,
                     selfHref, defaultTitle, buildTimeDefaultUrls, buildItemUrls, devServicesOidcClientId, isDevOrTest);
             handlerRegistrar.accept(indexHtmlHandler);
+
+            Handler<RoutingContext> staticHandler = recorder.staticHandler(result.getFinalDestination(), swaggerUiPath,
+                    result.getWebRootConfigurations(), shutdownContext);
+            handlerRegistrar.accept(staticHandler);
 
         }
     }
