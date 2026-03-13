@@ -57,7 +57,6 @@ public class IndexHtmlHandler implements Handler<RoutingContext> {
     }
 
     private void serveIndexHtml(RoutingContext event) {
-        // TODO: vert.x and synchronized??
         if (cachedIndexHtml == null) {
             synchronized (this) {
                 if (cachedIndexHtml == null) {
