@@ -576,9 +576,7 @@ public class SmallRyeOpenApiProcessor {
 
         if (!classNamesMethods.isEmpty() || !authorizedMethods.isEmpty() || !authenticatedMethods.isEmpty()) {
             return new OperationFilter(classNamesMethods, authorizedMethods, authenticatedMethods,
-                    documentConfig.securitySchemeName(),
-                    documentConfig.autoAddTags(), documentConfig.autoAddOperationSummary(),
-                    documentConfig.autoAddBadRequestResponse(),
+                    documentConfig,
                     isOpenApi_3_1_0_OrGreater(documentConfig));
         }
 
@@ -976,6 +974,19 @@ public class SmallRyeOpenApiProcessor {
             openAPIBuildItemsByDocumentName.computeIfAbsent(o.getDocumentName(), ignored -> new ArrayList<>()).add(o);
         });
 
+        /*
+         * Only add method references if the OperationFilter is enabled. Otherwise,
+         * they are not needed.
+         */
+        OperationHandler operationHandler = openAPIBuildItemsByDocumentName.values().stream()
+                .flatMap(Collection::stream)
+                .map(AddToOpenAPIDefinitionBuildItem::getOASFilter)
+                .anyMatch(OperationFilter.class::isInstance)
+                        ? this::addMethodReferenceExtension
+                        : OperationHandler.DEFAULT;
+        SmallRyeOpenAPI baseOpenApiDocument = buildBaseOpenApiDocument(loader, index, config, urlIgnorePatterns, capabilities,
+                httpRootPathBuildItem, operationHandler);
+
         // Build OpenAPI document for each configured document
         smallRyeOpenApiConfig.documents().forEach((documentName, documentConfig) -> {
 
@@ -987,16 +998,8 @@ public class SmallRyeOpenApiProcessor {
                     .sorted(Comparator.comparing(filter -> filter.getClass().getName()))
                     .toList();
 
-            /*
-             * Only add method references if the OperationFilter is enabled. Otherwise,
-             * they are not needed.
-             */
-            OperationHandler operationHandler = oasFilters.stream()
-                    .anyMatch(OperationFilter.class::isInstance)
-                            ? this::addMethodReferenceExtension
-                            : OperationHandler.DEFAULT;
-
             SmallRyeOpenAPI openAPI = buildOpenApiDocument(
+                    baseOpenApiDocument,
                     documentName,
                     documentConfig,
                     loader,
@@ -1005,9 +1008,7 @@ public class SmallRyeOpenApiProcessor {
                     urlIgnorePatterns,
                     capabilities,
                     oasFilters,
-                    documentFiltersBuildItem.filterNamesFor(documentName, OpenApiFilter.RunStage.BUILD),
-                    httpRootPathBuildItem,
-                    operationHandler);
+                    documentFiltersBuildItem.filterNamesFor(documentName, OpenApiFilter.RunStage.BUILD));
 
             Map.<String, Supplier<String>> of(//
                     "JSON", openAPI::toJSON, //
@@ -1048,7 +1049,51 @@ public class SmallRyeOpenApiProcessor {
         });
     }
 
+    private SmallRyeOpenAPI buildBaseOpenApiDocument(ClassLoader loader,
+            FilteredIndexView index,
+            Config config,
+            List<Pattern> urlIgnorePatterns,
+            Capabilities capabilities,
+            HttpRootPathBuildItem httpRootPathBuildItem,
+            OperationHandler operationHandler) {
+
+        SmallRyeOpenAPI.Builder builder = SmallRyeOpenAPI.builder()
+                .withConfig(config)
+                .withIndex(index)
+                .withApplicationClassLoader(loader)
+                .withScannerClassLoader(loader)
+                .enableStandardStaticFiles(false)
+                .withResourceLocator(path -> {
+                    URL locator = loader.getResource(path);
+                    if (locator == null || shouldIgnore(urlIgnorePatterns, locator.toString())) {
+                        return null;
+                    }
+                    return locator;
+                })
+                .enableAnnotationScan(shouldScanAnnotations(capabilities, index))
+                .withScannerFilter(getScannerFilter(capabilities, index))
+                .withContextRootResolver(getContextRootResolver(config, capabilities, httpRootPathBuildItem))
+                .withTypeConverter(getTypeConverter(index, capabilities))
+                .withOperationHandler(operationHandler)
+                .enableUnannotatedPathParameters(capabilities.isPresent(Capability.RESTEASY_REACTIVE))
+                .enableStandardFilter(false)
+                .defaultRequiredProperties(false)
+                // Mark the model as intermediate so that private extensions remain
+                // available for filters running at startup.
+                .withIntermediateModel(true)
+                .withCustomStaticFile(() -> new ByteArrayInputStream("info:".getBytes(StandardCharsets.UTF_8)))
+                .withFilters(List.of(new OASFilter() {
+                    @Override
+                    public void filterOpenAPI(OpenAPI openAPI) {
+                        OASFilter.super.filterOpenAPI(openAPI);
+                    }
+                }));
+
+        return builder.build();
+    }
+
     private SmallRyeOpenAPI buildOpenApiDocument(
+            SmallRyeOpenAPI baseOpenapi,
             String documentName,
             OpenApiDocumentConfig documentConfig,
             ClassLoader loader,
@@ -1057,19 +1102,16 @@ public class SmallRyeOpenApiProcessor {
             List<Pattern> urlIgnorePatterns,
             Capabilities capabilities,
             List<OASFilter> oasFilters,
-            List<String> filterNames,
-            HttpRootPathBuildItem httpRootPathBuildItem,
-            OperationHandler operationHandler) {
+            List<String> filterNames) {
 
         Config wrappedConfig = OpenApiConfigHelper.wrap(config, documentName);
 
         SmallRyeOpenAPI.Builder builder = SmallRyeOpenAPI.builder()
                 .withConfig(wrappedConfig)
                 .withIndex(index)
+                .withInitialModel(baseOpenapi.model())
                 .withApplicationClassLoader(loader)
                 .withScannerClassLoader(loader)
-                .enableModelReader(true)
-                .enableStandardStaticFiles(!documentConfig.ignoreStaticDocument())
                 .withResourceLocator(path -> {
                     URL locator = loader.getResource(path);
                     if (locator == null || shouldIgnore(urlIgnorePatterns, locator.toString())) {
@@ -1077,13 +1119,10 @@ public class SmallRyeOpenApiProcessor {
                     }
                     return locator;
                 })
+                .enableStandardStaticFiles(!documentConfig.ignoreStaticDocument())
                 .withCustomStaticFile(() -> loadAdditionalDocsModel(documentConfig, urlIgnorePatterns, null))
-                .enableAnnotationScan(shouldScanAnnotations(capabilities, index))
                 .withScannerFilter(getScannerFilter(capabilities, index))
-                .withContextRootResolver(getContextRootResolver(config, capabilities, httpRootPathBuildItem))
-                .withTypeConverter(getTypeConverter(index, capabilities))
-                .withOperationHandler(operationHandler)
-                .enableUnannotatedPathParameters(capabilities.isPresent(Capability.RESTEASY_REACTIVE))
+                .enableAnnotationScan(false)
                 .enableStandardFilter(false)
                 .withFilters(oasFilters)
                 // Mark the model as intermediate so that private extensions remain

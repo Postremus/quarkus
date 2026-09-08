@@ -25,6 +25,11 @@ import org.eclipse.microprofile.openapi.models.responses.APIResponses;
 import org.eclipse.microprofile.openapi.models.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.models.security.SecurityScheme;
 
+import io.quarkus.smallrye.openapi.common.deployment.OpenApiDocumentConfig;
+import io.smallrye.config.common.utils.StringUtil;
+import io.smallrye.openapi.api.OpenApiConfig;
+import io.smallrye.openapi.api.OperationIdGenerator;
+
 /**
  * This filter has the following functions:
  * <ul>
@@ -48,21 +53,22 @@ public class OperationFilter implements OASFilter {
     private final boolean doAutoOperation;
     private final boolean doAutoBadRequest;
     private final boolean alwaysIncludeScopesValidForScheme;
+    private final OpenApiDocumentConfig documentConfig;
 
     public OperationFilter(Map<String, ClassAndMethod> classNameMap,
             Map<String, List<String>> authorizedMethodReferences,
             List<String> authenticatedMethodReferences,
-            String defaultSecuritySchemeName,
-            boolean doAutoTag, boolean doAutoOperation, boolean doAutoBadRequest, boolean alwaysIncludeScopesValidForScheme) {
+            OpenApiDocumentConfig documentConfig, boolean alwaysIncludeScopesValidForScheme) {
 
         this.classNameMap = Objects.requireNonNull(classNameMap);
         this.authorizedMethodReferences = Objects.requireNonNull(authorizedMethodReferences);
         this.authenticatedMethodReferences = Objects.requireNonNull(authenticatedMethodReferences);
-        this.defaultSecuritySchemeName = Objects.requireNonNull(defaultSecuritySchemeName);
-        this.doAutoTag = doAutoTag;
-        this.doAutoOperation = doAutoOperation;
-        this.doAutoBadRequest = doAutoBadRequest;
+        this.defaultSecuritySchemeName = Objects.requireNonNull(documentConfig.securitySchemeName());
+        this.doAutoTag = documentConfig.autoAddTags();
+        this.doAutoOperation = documentConfig.autoAddOperationSummary();
+        this.doAutoBadRequest = documentConfig.autoAddBadRequestResponse();
         this.alwaysIncludeScopesValidForScheme = alwaysIncludeScopesValidForScheme;
+        this.documentConfig = documentConfig;
     }
 
     @Override
@@ -96,6 +102,32 @@ public class OperationFilter implements OASFilter {
 
                     operation.getValue().removeExtension(EXT_METHOD_REF);
                 });
+    }
+
+    @Override
+    public Operation filterOperation(Operation operation) {
+        String methodRef = methodRef(operation);
+        if (!classNameMap.containsKey(methodRef)) {
+            return operation;
+        }
+
+        ClassAndMethod classAndMethod = classNameMap.get(methodRef);
+
+        if (operation.getOperationId() == null) {
+            documentConfig.operationIdStrategy().ifPresent(operationIdStrategy -> {
+                String realStrategy = switch (StringUtil.skewer(operationIdStrategy.trim())) {
+                    case "method" -> OpenApiConfig.OperationIdStrategy.METHOD;
+                    case "class-method" -> OpenApiConfig.OperationIdStrategy.CLASS_METHOD;
+                    case "package-class-method" -> OpenApiConfig.OperationIdStrategy.PACKAGE_CLASS_METHOD;
+                    default -> operationIdStrategy.trim();
+                };
+                OperationIdGenerator instance = OperationIdGenerator.load(realStrategy,
+                        Thread.currentThread().getContextClassLoader());
+                operation.setOperationId(instance.generateOperationId(classAndMethod.classInfo(), classAndMethod.method()));
+            });
+        }
+
+        return operation;
     }
 
     private String methodRef(Operation operation) {
